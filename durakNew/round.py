@@ -77,30 +77,44 @@ class Round:
         ##Assign roles to every player
         self.determineRoles()
 
+        ##Sets active player to be the attacker, who always starts
+        activePlayerIndex = self.playerList.index(self.attackingPlayerIndex)
+
         ##Boolean that becomes true when the round is over
         isOver = False
 
-        ##Sets active player to be the attacker, who always starts
-        activePlayerIndex = self.playerList.index(attackingPlayerIndex)
-        activePlayer =  self.playerList[activePlayerIndex]
-
-        pm = self.possibleMoves(activePlayer)
-        action = activePlayer.chooseAction(pm)
-        self.gamestate.attackingCard.append(action)
-
-        ##Defender then defends
-        activePlayer += 1
-        pm = self.possibleMoves(activePlayer)
-        action = activePlayer.chooseAction(pm)
-
-        if action == -1:
-            isOver = True
-        
         while not isOver:
-            
+            activePlayer = self.playerList[activePlayerIndex]
+            pm = self.possibleMoves(activePlayer)
+            action = activePlayer.chooseAction(pm)
 
-        else:
-            self.gamestate.defendingCard.append(action)
+            ##If attacker, their only possible action is to play an attacking card
+            if activePlayer.getRole() == 0:
+                self.gamestate.attackingCards.append(action)
+
+            ##If defender, they have 2 options
+            elif activePlayer.getRole() == 1:
+                
+                ##Option 1: They opt to pickup all the cards in the defending pile
+                if action == -1:
+                    isOver = True
+
+                ##Option 2: The successfully defend the attack
+                else:
+                    self.gamestate.defendingCards.append(action)
+
+            ##If neighbour, they have 2 options
+            elif activePlayer.getRole() == 2:
+
+                if action != 0:
+                    self.gamestate.attackingCards.append(action)
+
+            elif activePlayer.getRole() == 3:
+                continue
+
+
+            activePlayerIndex = (activePlayerIndex + 1) % len(self.playerList)
+
 
         
             
