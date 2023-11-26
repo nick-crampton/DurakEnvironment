@@ -58,6 +58,10 @@ class Player:
         self.hand.append(card)
         self.sortHand()
 
+    def addCards(self, cards):
+        self.hand.extend(cards)
+        self.sortHand()
+
     def __str__(self):
         handStr = ', '.join(str(card) for card in self.hand)
         return f"Player {self.playerID}\n{self.role}\n{handStr}\n"

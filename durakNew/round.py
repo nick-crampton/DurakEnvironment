@@ -72,6 +72,28 @@ class Round:
         else:
             return []
 
+    def defenderPickup(self, activePlayer):
+        
+        activePlayer.addCards(self.gamestate.attackingCards)
+        activePlayer.addCards(self.gamestate.defendingCards)
+
+        self.gamestate.attackingCards.clear()
+        self.gamestate.defendingCards.clear()
+
+    def defenseCheck(self, defender, skipAttackCheck):
+        totalAttacks = len(self.gamestate.attackingCards)
+
+        ##Scenario 1: Defender has beaten all attacks thus far, and no attackers/neighbours
+        ##Are able, or willing to attack
+
+        ##Scenario 2: Attack has played 6 cards, and defender has defender beat all 6
+        if len(self.gamestate.defendingCards) == totalAttacks or totalAttacks == 6:
+            return True
+        
+        ##Scenario 3: Defender manages to defend with every card in their hand
+        if len(defender.getHand()) == 0:
+            return True
+
     def startRound(self):
         
         ##Assign roles to every player
@@ -91,6 +113,9 @@ class Round:
             ##If attacker, their only possible action is to play an attacking card
             if activePlayer.getRole() == 0:
                 self.gamestate.attackingCards.append(action)
+                
+                ##Sets the attacker's role to Neighbour, so they now have the option to pass on attacking
+                activePlayer.role = 2
 
             ##If defender, they have 2 options
             elif activePlayer.getRole() == 1:
@@ -98,26 +123,45 @@ class Round:
                 ##Option 1: They opt to pickup all the cards in the defending pile
                 if action == -1:
                     isOver = True
+                    self.defenderPickup(activePlayer)
+                    break
 
                 ##Option 2: The successfully defend the attack
                 else:
                     self.gamestate.defendingCards.append(action)
+                    skipAttackCheck = False
+
+                    if skipAttackCount == len(self.playerList) - 1:
+                        skipAttackCount = True
+
+                    if self.defenseCheck(skipAttackCheck):
+                        break
 
             ##If neighbour, they have 2 options
             elif activePlayer.getRole() == 2:
 
+                ##If the don't opt to pass on attacking (option 1)
+                ##They have to play an attacking card
                 if action != 0:
                     self.gamestate.attackingCards.append(action)
 
-            elif activePlayer.getRole() == 3:
-                continue
+                else:
+                    skipAttackCount += 1
 
+            ##Bystanders do not have a turn
+            elif activePlayer.getRole() == 3:
+                skipAttackCount += 1
+                continue
 
             activePlayerIndex = (activePlayerIndex + 1) % len(self.playerList)
 
+        ##If the round is over, endRound function is called which handles end round logic.
+        if isOver:-
+            self.endRound()
 
+    def endRound(self):
+        pass
         
-            
 
             
 
