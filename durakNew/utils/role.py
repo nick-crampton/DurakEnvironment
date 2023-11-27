@@ -1,4 +1,4 @@
-Role = {
+role = {
     "Attacker": 0,
     "Defender": 1,
     "Neighbour": 2,
