@@ -1,10 +1,11 @@
 from durakNew.player import Player
+from durakNew.round import Round
 from durakNew.gamestate import GameState
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.deck import Deck
 
-from random import random
+import random
 
 playerType = {
     "Human": 0,
@@ -21,6 +22,7 @@ class Game:
         self.deck = None
 
         self.playerList = []
+        self.gamestate = GameState()
 
     def createPlayers(self, noPlayers):
         for i in range(noPlayers):
@@ -29,17 +31,16 @@ class Game:
 
             if playerType == 0:
                 ##Create HumanPlayer
-                newPlayer = HumanPlayer([], i)
+                newPlayer = HumanPlayer([], i + 1, self.gamestate)
                 pass
             elif playerType == 1:
                 ##Create BotPlayer
-                newPlayer = RandomBot([[], i])
+                newPlayer = RandomBot([], i + 1,  self.gamestate)
                 pass
             elif playerType == 2:
                 ##Create AgentPlayer
                 pass
 
-            newPlayer = Player([], i)
             self.playerList.append(newPlayer)
 
     def dealHands(self, activeDeck):
@@ -48,6 +49,9 @@ class Game:
                 if not activeDeck.isEmpty():
                     card = activeDeck.drawCard()
                     player.addCard(card)
+
+        card = activeDeck.drawCard()
+        self.gamestate.trumpSuit = card.suit
 
     def newGame(self):
         ##First, create all the new players
@@ -59,19 +63,17 @@ class Game:
         ##Deal 6 cards to each player
         self.dealHands(self.deck)
 
-        for player in self.playerList:
-            print(player)
-
-        gamestate = GameState()
-        
         ##Determine who starts
-        attackingPlayer = random.choice(self.playerList)
+        attackingPlayerIndex = random.choice(self.playerList).getID()
+        
+        while len(self.playerList) > 1:
+            round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
+            self.playerList = round.playRound()
 
-        while not isOver:
-            round = Round(self.playerList, attackingPlayer, gamestate)
-            
-            round.startRound()
+        else:
+            ##Losing Player
+            lastPlayer = self.playerList[0]
+            print(f"GAME OVER. {lastPlayer} is the Durak")
 
-            ##TO DO: Place checker that determines when game is over.
 
 

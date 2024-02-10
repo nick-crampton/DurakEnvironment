@@ -1,6 +1,6 @@
 suitList = {
-    "Hearts": 0,
-    "Diamonds": 0,
-    "Spades": 0,
-    "Clubs": 0
+    "Hearts": 1,
+    "Diamonds": 2,
+    "Spades": 3,
+    "Clubs": 4
 }

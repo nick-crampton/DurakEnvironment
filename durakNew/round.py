@@ -2,6 +2,9 @@ from durakNew.player import Player
 from durakNew.deck import Deck
 from durakNew.gamestate import GameState
 
+from durakNew.utils.role import role
+from durakNew.utils.printCardLists import printCardLists
+
 class Round:
     def __init__(self, playerList, attackingPlayerIndex, gamestate):
         self.playerList = playerList
@@ -18,16 +21,16 @@ class Round:
             position = (self.attackingPlayerIndex + i) % numPlayers
 
             if position == 0:
-                role = 0
+                role = "Attacker"
 
             elif position == 1:
-                role = 1
+                role = "Defender"
 
             elif position == 2 and numPlayers >= 3:
-                role = 2
+                role = "Neighbour"
             
             else:
-                role = 3
+                role = "Bystander"
 
             self.playerList[i].setRole(role)
 
@@ -46,17 +49,21 @@ class Round:
         return undefendedCards       
 
     def possibleMoves(self, activePlayer):
-        role = activePlayer.getRole()
+        roleVal = role[activePlayer.getRole()]
         hand = activePlayer.getHand()
 
         ##Attacker
-        if role == 0:
+        if roleVal == 0:
             return hand
         
         ##Defender
-        elif role == 1:
+        elif roleVal == 1:
             undefendedCards = self.getUndefendedCards()
             defensibleCards = []
+
+            if len(undefendedCards) == 0:
+                defensibleCards.append(0)
+                return defensibleCards
 
             if len(undefendedCards) != 0:
                 cardToDefend = undefendedCards[0]
@@ -72,10 +79,11 @@ class Round:
                 if len(defensibleCards) == 0:
                     return []
 
-                return defensibleCards
+            defensibleCards.append(-1)
+            return defensibleCards
                         
         ##Neighbour
-        elif role == 2:
+        elif roleVal == 2:
             if len(self.attackingCards) >= 6:
                 return []
             
@@ -100,6 +108,7 @@ class Round:
                 if r in ranksToAttack:
                     legibleAttacks.append[card]
 
+            legibleAttacks.append(0)
             return legibleAttacks
 
         ##Bystander
@@ -108,6 +117,9 @@ class Round:
 
     def defenderPickup(self, activePlayer):
         
+        print("Round is over. Defender picks up:")
+        print(printCardLists(self.gamestate.attackingCards))
+
         activePlayer.addCards(self.gamestate.attackingCards)
         activePlayer.addCards(self.gamestate.defendingCards)
 
@@ -128,37 +140,54 @@ class Round:
 
     def attackerTurn(self, attacker):
         pm = self.possibleMoves(attacker)
-        action = attacker.chooseAction(pm)
+        action = attacker.chooseAction(pm, attacker.getRole())
 
         if action != 0:
             return action
 
     def defenderTurn(self, defender):
         pm = self.possibleMoves(defender)
-        action = defender.chooseAction(pm)
+        action = defender.chooseAction(pm, defender.getRole())
 
         ##Option 1: They opt to pickup all the cards in the defending pile
         if action == -1:
-            self.defenderPickup(defender)
             return -1
 
         ##Option 2: The successfully defend the attack
         else:
             return action
     
+    def talonDraw(self):
+        playerIndex = self.attackingPlayerIndex
+
+        for i in range(len(self.playerList)):
+            currentPlayer = self.playerList[playerIndex]
+
+            while (len(currentPlayer.getHand()) < 6) and (len(self.gamestate.talon) > 0):
+                card = self.gamestate.talon.pop()
+                currentPlayer.addCard(card)
+
+            if (len(self.gamestate.talon) == 0):
+                print("Talon has been emptied, drawing cards is over")
+
+            playerIndex = (playerIndex - 1) % len(self.playerList)
+
     def playRound(self):
         iteration = 0
         actionList = []
 
         ##Assign roles to every player
-        self.determineRoles()
+        rolesDict = self.determineRoles()
+
+        for player in self.playerList:
+            print(player)
 
         ##Boolean that becomes true when the round is over
         isOver = False
 
         while not isOver:
 
-            print(f"Iteration {iteration}:\n")
+            print(f"Iteration {iteration}:")
 
             ##Turn 0, only the attacker can do anything in the initial round
             if iteration == 0:
@@ -176,56 +205,78 @@ class Round:
 
                 action = self.defenderTurn(defender)
 
-                if action != 0:
+                ##If defender picks up, game is over.
+
+                if action != -1:
                     actionList.append([action, 1])
 
                 else:
                     isOver = True
+                    self.defenderPickup(defender)
                     break
 
+            ##For all turns after, every player is offered the turn to play
             else:
                 for player in self.playerList: 
                     
-                    if player.getRole() == 0:
+                    if player.getRole() == "Attacker":
                         print("Attacker should not appear in this for loop! debug time")
 
-                    elif player.getRole() == 1:
-                        defender = self.playerList[player]
-                        action = self.defenderTurn(defender)
+                    elif player.getRole() == "Defender":
+                        action = self.defenderTurn(player)
 
                         if action != -1:
                             actionList.append([action, 1])
 
                         else:
                             isOver = True
+                            self.defenderPickup(player)
                             break
                 
-                    elif player.getRole() == 2:
-                        neighbour = self.playerList[player]
-                        
-                        action = self.attackerTurn(neighbour)
+                    elif player.getRole() == "Neighbour":
+                        action = self.attackerTurn(player)
                         
                         if action != 0:
                             actionList.append([action, 0])
 
-                attackFlag = False
+            attackFlag = False
 
-                for i in actionList:
-                    card = i[0]
+            for i in actionList:
+                card = i[0]
+                
+                if i[1] == 0:
+                    self.gamestate.attackingCards.append(card)
+                    print(f"The {card} has been added to the attack pile.\n")
+                    attackFlag = True
+
+                if i[1] == 1 and attackFlag == False:
+                    self.gamestate.defendingCards.append(card)
+                    cardPos = len(self.gamestate.defendingCards) - 1
                     
-                    if i[1] == 0:
-                        self.gamestate.attackingCards.append(card)
-                        print(f"The {card} has been added to the attack pile.")
-                        attackFlag = True
+                    attackCard = self.gamestate.attackingCards[cardPos]
 
-                    if i[1] == 1 and attackFlag == False:
-                        self.gamestate.defendingCards.append(card)
-                        cardPos = self.gamestate.defendingCards[-1]
-                        
-                        attackCard = self.gamestate.attackingCards[cardPos]
+                    print(f"The {card} has been used to defend {attackCard}\n")
 
-                        print(f"The {card} has been used to defend {attackCard}")
+            actionList.clear()
 
-                iteration += 1
-            
+            iteration += 1
 
+        ##Round is over
+        
+        ##Need to clear attack/defend piles
+
+        ##Deal hands to players
+        self.talonDraw()
+
+        remainingPlayers = []
+
+        ##If anyone's hand is still empty after talon draw, they are finished and out of the game
+        for player in self.playerList:
+
+            if len(player.hand) > 0:
+                remainingPlayers.append(player)
+
+            else:
+                print(f"{player} bows out by clearing their hand")
+
+        return remainingPlayers
