@@ -117,11 +117,11 @@ class HumanPlayer(Player):
         
         elif letter == 'a':
             print(f"Attacking pile: ")
-            print(printCardLists(self.gamestate.attackingCards))
+            print(printCardLists(self.gamestate.getAttackCards()))
 
         elif letter == 'd':
             print(f"Defending Pile: ")
-            print(printCardLists(self.gamestate.defendingCards))
+            print(printCardLists(self.gamestate.getDefenseCards()))
 
         elif letter == 'h':
             print(f"Hand: ")

@@ -2,9 +2,6 @@ from durakNew.utils.printCardLists import printCardLists
 class GameState:
     def __init__(self):
         self.trumpSuit = None
-        ##self.attackingCards = []
-        ##self.defendingCards = []
-
         self.attackDefensePairs = []
         self.playerHands = {}
         self.talon = []
@@ -13,6 +10,12 @@ class GameState:
     
     def undefendedCards(self):
         return [pair[0] for pair in self.attackDefensePairs if pair[1] is None]
+
+    def getAttackCards(self):
+        return [pair[0] for pair in self.attackDefensePairs]
+    
+    def getDefenseCards(self):
+        return [pair[1] for pair in self.attackDefensePairs if pair[1] is not None]
 
     def __str__(self):
         output = []

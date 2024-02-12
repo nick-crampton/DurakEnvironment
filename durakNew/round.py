@@ -201,8 +201,7 @@ class Round:
                                 player.playCard(action)
 
             else:
-
-                defenderIndex = (self.attackerPlayerIndex + 1) % len(self.playerList)
+                defenderIndex = (self.attackingPlayerIndex + 1) % len(self.playerList)
                 defender = self.playerList[defenderIndex]
 
                 undefended = self.gamestate.undefendedCards()
