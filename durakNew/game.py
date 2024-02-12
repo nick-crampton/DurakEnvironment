@@ -31,11 +31,11 @@ class Game:
 
             if playerType == 0:
                 ##Create HumanPlayer
-                newPlayer = HumanPlayer([], i + 1, self.gamestate)
+                newPlayer = HumanPlayer([], i, self.gamestate)
                 pass
             elif playerType == 1:
                 ##Create BotPlayer
-                newPlayer = RandomBot([], i + 1,  self.gamestate)
+                newPlayer = RandomBot([], i,  self.gamestate)
                 pass
             elif playerType == 2:
                 ##Create AgentPlayer
@@ -44,14 +44,22 @@ class Game:
             self.playerList.append(newPlayer)
 
     def dealHands(self, activeDeck):
+        
+        ##Deal 6 cards to each player
         for _ in range(0, 6):
             for player in self.playerList:
                 if not activeDeck.isEmpty():
                     card = activeDeck.drawCard()
                     player.addCard(card)
 
-        card = activeDeck.drawCard()
-        self.gamestate.trumpSuit = card.suit
+        self.gamestate.talon.extend(activeDeck.cards)
+        activeDeck.cards.clear()
+
+        trumpCard = self.gamestate.talon[-1]
+        self.gamestate.trumpSuit = trumpCard.suit
+
+        print(f"Trump suit is {self.gamestate.trumpSuit}")
+
 
     def newGame(self):
         ##First, create all the new players

@@ -2,7 +2,7 @@
 from durakNew.card import Card
 from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList
-from durakNew.utils.role import role
+from durakNew.utils.roleDict import roleDict
 
 class Player:
     def __init__(self, hand, playerID, gamestate):
@@ -65,6 +65,9 @@ class Player:
     def addCards(self, cards):
         self.hand.extend(cards)
         self.sortHand()
+
+    def playCard(self, card):
+        self.hand.remove(card)
 
     def __str__(self):
         handStr = ', '.join(str(card) for card in self.hand)

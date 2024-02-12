@@ -2,13 +2,18 @@ from durakNew.utils.printCardLists import printCardLists
 class GameState:
     def __init__(self):
         self.trumpSuit = None
-        self.attackingCards = []
-        self.defendingCards = []
+        ##self.attackingCards = []
+        ##self.defendingCards = []
+
+        self.attackDefensePairs = []
         self.playerHands = {}
         self.talon = []
         self.discardPile = []
         self.activeRole = None
     
+    def undefendedCards(self):
+        return [pair[0] for pair in self.attackDefensePairs if pair[1] is None]
+
     def __str__(self):
         output = []
 

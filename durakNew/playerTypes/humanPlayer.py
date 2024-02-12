@@ -1,36 +1,102 @@
 from durakNew.player import Player
 from durakNew.card import Card
 from durakNew.utils.printCardLists import printCardLists
+from durakNew.utils.roleDict import roleDict
 
 class HumanPlayer(Player):
     def __init__(self, hand, playerID, gamestate):
         super().__init__(hand, playerID, gamestate)
 
     def chooseAction(self, possibleMoves, role):
-        self.displayPossibleMoves(possibleMoves)
+        roleName = roleDict[role]
 
-        ##User is prompted to pick an action
-        while True:
-            choice = input("Select your move (enter move number) or view game info (t/a/d/h): ")
-            print()
-            choice = choice.lower()
+        if role == 0 or role == 2:
 
-            if choice in ['t', 'a', 'd', 'h']:
-                self.printGamestate(choice)
-                continue
+            print("You are attacking.")
+            self.displayPossibleMoves(possibleMoves)
 
-            try:
-                choice = int(choice)
+            ##Choose which card to attack with:
+            while True:
+                choice = input("Select your move (enter move number) or view game info (t/a/d/h): ")
+                choice = choice.lower()
+
+                if choice in ['t', 'a', 'd', 'h']:
+                    self.printGamestate(choice)
+                    continue
+
+                try:
+                    choice = int(choice)
+
+                    if 0 <= choice < len(possibleMoves):
+                        return possibleMoves[choice]
+                    
+                    else:
+                        print("Card choice out of range. Select a number associated with a card")
+
+                except ValueError:
+                    print("Invalid Input, enter an applicable number or a command (t/a/d/h)")
+
+        if role == 1:
+
+            print("You are defending.")
+
+            undefendedCards = self.gamestate.undefendedCards()
+
+            ##Choose which card to defend
+            while True: 
                 
-                if 0 <= choice <= len(possibleMoves):
-                    return possibleMoves[choice]
-        
-                else:
-                    print("Card choice out of range. Select a number associated with a card")
-                
-            except ValueError:
-                print("Invalid Input, enter an applicable number or a command (t/a/d/h)")
+                for i, card in enumerate(undefendedCards):
+                    print(f"{i}>> Defend {card}")
+
+                choice1 = input("Select which card to defend or view game info (t/a/d/h): ")
+                choice1 = choice1.lower()
+
+                if choice1 in ['t', 'a', 'd', 'h']:
+                    self.printGamestate(choice1)
+                    continue
+
+                try:
+                    choice1 = int(choice1)
+
+                    if 0 <= choice1 < len(undefendedCards):
+                        selectedAttackCard = undefendedCards[choice1]
+                        defensibleCards = possibleMoves[choice1]
+
+                        ##Now choose a card to defend that card
+                        print(f"Defending {selectedAttackCard}.")
+                        self.displayPossibleMoves(defensibleCards)
+
+                        while True:
+                            choice2 = input("Select your move (enter move number) or view game info (t/a/d/h): ")
+                            print()
+                            choice2 = choice2.lower()
+
+                            if choice2 in ['t', 'a', 'd', 'h']:
+                                self.printGamestate(choice2)
+                                continue
+
+                            try:
+                                choice2 = int(choice2)
+
+                                if 0 <= choice2 <= len(defensibleCards):
+                                    return (selectedAttackCard, defensibleCards[choice2])
+                                
+                                elif choice2 == -1:
+                                    return -1
+                        
+                                else:
+                                    print("Card choice out of range. Select a number associated with a card")
+                                
+                            except ValueError:
+                                print("Invalid Input, enter an applicable number or a command (t/a/d/h)")
+
     
+                    else:
+                        print("Card choice out of range. Select a number associated with a card")
+
+                except ValueError:
+                    print("Invalid Input, enter an applicable number or a command (t/a/d/h)")
+
     def displayPossibleMoves(self, possibleMoves):
         print("\nPossible Moves:  ")
 

@@ -2,7 +2,7 @@ from durakNew.player import Player
 from durakNew.deck import Deck
 from durakNew.gamestate import GameState
 
-from durakNew.utils.role import role
+from durakNew.utils.roleDict import roleDict
 from durakNew.utils.printCardLists import printCardLists
 
 class Round:
@@ -21,70 +21,54 @@ class Round:
             position = (self.attackingPlayerIndex + i) % numPlayers
 
             if position == 0:
-                role = "Attacker"
+                role = 0
 
             elif position == 1:
-                role = "Defender"
+                role = 1
 
             elif position == 2 and numPlayers >= 3:
-                role = "Neighbour"
+                role = 2
             
             else:
-                role = "Bystander"
+                role = 3
 
             self.playerList[i].setRole(role)
 
-    def getUndefendedCards(self):
-        undefendedCards = []       
-        
-        pileDifference = len(self.gamestate.attackingCards) - len(self.gamestate.defendingCards)
-
-        if pileDifference == 0:
-            return undefendedCards
-
-        for i in range(0, len(self.gamestate.attackingCards)):
-            if i >= len(self.gamestate.defendingCards):
-                undefendedCards.append(self.gamestate.attackingCards[i]) 
-
-        return undefendedCards       
-
     def possibleMoves(self, activePlayer):
-        roleVal = role[activePlayer.getRole()]
+        role = activePlayer.getRole()
         hand = activePlayer.getHand()
 
         ##Attacker
-        if roleVal == 0:
+        if role == 0:
             return hand
         
         ##Defender
-        elif roleVal == 1:
-            undefendedCards = self.getUndefendedCards()
-            defensibleCards = []
+        elif role == 1:
+            undefendedCards = self.gamestate.undefendedCards()
+            defenses = []
 
-            if len(undefendedCards) == 0:
-                defensibleCards.append(0)
-                return defensibleCards
-
-            if len(undefendedCards) != 0:
-                cardToDefend = undefendedCards[0]
+            for attackCard in undefendedCards:
+                
+                defenseForAttack = []
 
                 for card in hand:
 
-                    if card.suit == self.gamestate.trumpSuit and cardToDefend.suit != self.gamestate.trumpSuit:
-                        defensibleCards.append(card)
+                    if card.suit == self.gamestate.trumpSuit and attackCard.suit != self.gamestate.trumpSuit:
+                        defenseForAttack.append(card)
 
-                    elif card.suit == cardToDefend.suit and card.getCardPower() > cardToDefend.getCardPower():
-                        defensibleCards.append(card)
+                    elif card.suit == attackCard.suit and card.getCardPower() > attackCard.getCardPower():
+                        defenseForAttack.append(card)
 
-                if len(defensibleCards) == 0:
-                    return []
-
-            defensibleCards.append(-1)
-            return defensibleCards
+                defenseForAttack.append(-1)
+                
+                defenses.append(defenseForAttack)
+            
+            
+            return defenses
                         
         ##Neighbour
-        elif roleVal == 2:
-            if len(self.attackingCards) >= 6:
+        elif role == 2:
+            if len(self.gamestate.attackingCards) >= 6:
                 return []
             
             ranksToAttack = []
@@ -106,7 +90,7 @@ class Round:
                 r = card.getRank()
 
                 if r in ranksToAttack:
-                    legibleAttacks.append[card]
+                    legibleAttacks.append(card)
 
             legibleAttacks.append(0)
             return legibleAttacks
@@ -141,22 +125,17 @@ class Round:
     def attackerTurn(self, attacker):
         pm = self.possibleMoves(attacker)
         action = attacker.chooseAction(pm, attacker.getRole())
-
-        if action != 0:
-            return action
+        return action
 
     def defenderTurn(self, defender):
         pm = self.possibleMoves(defender)
         action = defender.chooseAction(pm, defender.getRole())
 
-        ##Option 1: They opt to pickup all the cards in the defending pile
-        if action == -1:
-            return -1
-
-        ##Option 2: The successfully defend the attack
-        else:
-            return action
+        return action
     
+    def addAttack(self, card):
+        self.gamestate.attackDefensePairs.append((card, None))
+
     def talonDraw(self):
         playerIndex = self.attackingPlayerIndex
 
@@ -189,75 +168,56 @@ class Round:
 
             print(f"Iteration {iteration}:")
 
-            ##Turn 0, only the attacker can do anything in the initial round
-            if iteration == 0:
-                attacker = self.playerList[self.attackingPlayerIndex]
-                
-                action = self.attackerTurn(attacker)
-                actionList.append([action, 0])
+            if iteration % 2 == 0:
 
-                attacker.setRole(2)
+                ##Turn 0, only the attacker can do anything in the initial round
+                if iteration == 0:
+                    attacker = self.playerList[self.attackingPlayerIndex]
+                    
+                    action = self.attackerTurn(attacker)
 
-            ##Turn 1, the defender responds to the action of t0
-            elif iteration == 1:
-                defenderIndex = (self.attackingPlayerIndex + 1) % len(self.playerList)
-                defender = self.playerList[defenderIndex]
-
-                action = self.defenderTurn(defender)
-
-                ##If defender picks up, game is over.
-
-                if action != -1:
-                    actionList.append([action, 1])
+                    self.addAttack(action)
+                    attacker.playCard(action)
 
                 else:
-                    isOver = True
-                    self.defenderPickup(defender)
-                    break
 
-            ##For all turns after, every player is offered the turn to play
-            else:
-                for player in self.playerList: 
-                    
-                    if player.getRole() == "Attacker":
-                        print("Attacker should not appear in this for loop! debug time")
-
-                    elif player.getRole() == "Defender":
-                        action = self.defenderTurn(player)
-
-                        if action != -1:
-                            actionList.append([action, 1])
-
-                        else:
-                            isOver = True
-                            self.defenderPickup(player)
-                            break
-                
-                    elif player.getRole() == "Neighbour":
-                        action = self.attackerTurn(player)
+                    for player in self.playerList:
                         
-                        if action != 0:
-                            actionList.append([action, 0])
+                        ##If player is the attacker or the bystander.
+                        if player.getRole() == 0 or player.getRole() == 2:
+                            
+                            ##Maximum of 6 attack cards
+                            if len(self.gamestate.attackDefensePairs) > 5:
+                                print("There are now 6 attack cards in play.")
+                                break
 
-            attackFlag = False
+                            action = self.attackerTurn(player)
 
-            for i in actionList:
-                card = i[0]
-                
-                if i[1] == 0:
-                    self.gamestate.attackingCards.append(card)
-                    print(f"The {card} has been added to the attack pile.\n")
-                    attackFlag = True
+                            if action != 0:
 
-                if i[1] == 1 and attackFlag == False:
-                    self.gamestate.defendingCards.append(card)
-                    cardPos = len(self.gamestate.defendingCards) - 1
-                    
-                    attackCard = self.gamestate.attackingCards[cardPos]
+                                self.addAttack(action)
+                                print(f"The {action} has been added to the attack pile.")
+                                
+                                player.playCard(action)
 
-                    print(f"The {card} has been used to defend {attackCard}\n")
+            else:
 
-            actionList.clear()
+                defenderIndex = (self.attackerPlayerIndex + 1) % len(self.playerList)
+                defender = self.playerList[defenderIndex]
+
+                undefended = self.gamestate.undefendedCards()
+
+                for _ in range(len(undefended)):
+
+                    action = self.defenderTurn(defender)
+
+                    if action == -1:
+                        isOver = True
+                        break
+
+                    else:
+                        self.addDefense(action)
+                        defender.playCard(action)
 
             iteration += 1
 
