@@ -38,7 +38,7 @@ class HumanPlayer(Player):
 
         if role == 1:
 
-            print("You are defending.")
+            print("You are defending - All cards need to be defended.")
 
             undefendedCards = self.gamestate.undefendedCards()
 
@@ -60,11 +60,13 @@ class HumanPlayer(Player):
 
                     if 0 <= choice1 < len(undefendedCards):
                         selectedAttackCard = undefendedCards[choice1]
-                        defensibleCards = possibleMoves[choice1]
+                        defensibleActions = possibleMoves[choice1]
+
+                        defensibleActions.append(-2)
 
                         ##Now choose a card to defend that card
-                        print(f"Defending {selectedAttackCard}.")
-                        self.displayPossibleMoves(defensibleCards)
+                        print(f"Defending against the {selectedAttackCard}.")
+                        self.displayPossibleMoves(defensibleActions)
 
                         while True:
                             choice2 = input("Select your move (enter move number) or view game info (t/a/d/h): ")
@@ -78,12 +80,17 @@ class HumanPlayer(Player):
                             try:
                                 choice2 = int(choice2)
 
-                                if 0 <= choice2 <= len(defensibleCards):
-                                    return (selectedAttackCard, defensibleCards[choice2])
+                                if choice2 < (len(defensibleActions) - 2):
+                                    defensiveCard = defensibleActions[choice2]
+                                    return (selectedAttackCard, defensiveCard)
                                 
-                                elif choice2 == -1:
+                                elif choice2 == (len(defensibleActions) - 2):
                                     return -1
-                        
+                                
+                                elif choice2 == (len(defensibleActions) - 1):
+                                    defensibleActions.pop()
+                                    break
+
                                 else:
                                     print("Card choice out of range. Select a number associated with a card")
                                 
@@ -110,6 +117,9 @@ class HumanPlayer(Player):
 
             elif move == 0:
                 print(f"{i}>>  Pass on attacking")
+
+            elif move == -2:
+                print(f"{i}>>  Back")
     
     def printGamestate(self, letter):
         if letter == 't':

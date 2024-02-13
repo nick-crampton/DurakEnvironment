@@ -71,4 +71,5 @@ class Player:
 
     def __str__(self):
         handStr = ', '.join(str(card) for card in self.hand)
-        return (f"Player {self.playerID}\n{self.role}\n{handStr}\n")
+        roleName = roleDict.get(self.role)
+        return (f"Player {self.playerID} - {roleName}\nHand: {handStr}\n")

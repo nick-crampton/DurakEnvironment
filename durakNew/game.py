@@ -64,6 +64,7 @@ class Game:
     def newGame(self):
         ##First, create all the new players
         self.createPlayers(self.noPlayers)
+        
 
         ##Generate and shuffle new deck
         self.deck = Deck.generateDeck()
@@ -72,7 +73,8 @@ class Game:
         self.dealHands(self.deck)
 
         ##Determine who starts
-        attackingPlayerIndex = random.choice(self.playerList).getID()
+        ##attackingPlayerIndex = random.choice(self.playerList).getID()
+        attackingPlayerIndex = 1
         
         while len(self.playerList) > 1:
             round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
