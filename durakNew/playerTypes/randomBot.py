@@ -1,5 +1,6 @@
 import random
 from durakNew.player import Player
+from durakNew.card import Card
 
 class RandomBot(Player):
     def __init__(self, hand, playerID, gamestate):
@@ -8,21 +9,26 @@ class RandomBot(Player):
     def chooseAction(self, possibleMoves, role = None):
         if role == 1:
 
-            ##Create all possible tuples of (attackIndex, defenseCard) from possibleMoves nested lists
+            ##Get a list of undefended cards
+            undefended = self.gamestate.undefendedCards()
+
+            ##Create all possible tuples of (defenseCard, attackCard) from possibleMoves nested lists
             attackDefensePairs = []
 
             ##Loop through nested lists, a list for each undefended card.
-            for attackIndex, sublist in enumerate(possibleMoves):
+            for attackCard, defenses in zip(undefended, possibleMoves):
                 ##loop through all cards that can defend said attack card
-                for dCard in sublist:
-                    attackDefensePairs.append((attackIndex, dCard))
+                for defenseCard in defenses:
+                    
+                    if isinstance(defenseCard, Card):
+                        attackDefensePairs.append((defenseCard, attackCard))
 
+                    if defenseCard == -1:
+                        attackDefensePairs.append(-1)
 
             if len(attackDefensePairs) > 0:
                 action = random.choice(attackDefensePairs)
-                attackIndex, card = action
-
-                return card, attackIndex
+                return action
         
         else:
             return random.choice(possibleMoves)

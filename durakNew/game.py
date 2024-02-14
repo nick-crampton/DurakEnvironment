@@ -58,14 +58,12 @@ class Game:
         trumpCard = self.gamestate.talon[-1]
         self.gamestate.trumpSuit = trumpCard.suit
 
-        print(f"Trump suit is {self.gamestate.trumpSuit}")
-
+        print(f"Trump suit is {self.gamestate.trumpSuit}\n")
 
     def newGame(self):
         ##First, create all the new players
         self.createPlayers(self.noPlayers)
         
-
         ##Generate and shuffle new deck
         self.deck = Deck.generateDeck()
 
@@ -73,17 +71,16 @@ class Game:
         self.dealHands(self.deck)
 
         ##Determine who starts
-        ##attackingPlayerIndex = random.choice(self.playerList).getID()
-        attackingPlayerIndex = 1
+        attackingPlayerIndex = random.choice(self.playerList).getID()
+        ##attackingPlayerIndex = 0
         
         while len(self.playerList) > 1:
             round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
-            self.playerList = round.playRound()
+            self.playerList, attackingPlayerIndex = round.playRound()
 
-        else:
-            ##Losing Player
-            lastPlayer = self.playerList[0]
-            print(f"GAME OVER. {lastPlayer} is the Durak")
+            if len(self.playerList) == 1:
+                durak = self.playerList[0]
+                print(f"\nGAME OVER. {durak} is the Durak.")
 
 
 

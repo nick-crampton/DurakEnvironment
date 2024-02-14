@@ -65,32 +65,12 @@ class Round:
                         
         ##Neighbour
         elif role == 2:
-            if len(self.gamestate.attackingCards) >= 6:
-                return []
-            
-            ranksToAttack = []
-            legibleAttacks = []
+            ranksOnTable = {card.rank for attackCard, defenseCard in self.gamestate.attackDefensePairs for card in (attackCard, defenseCard) if card}
 
-            for card in self.gamestate.defendingCards:
-                r = card.getRank()
-
-                if r not in ranksToAttack:
-                    ranksToAttack.append(r)
-            
-            for card in self.gamestate.attackingCards:
-                r = card.getRank()
-
-                if r not in ranksToAttack:
-                    ranksToAttack.append(r)
-
-            for card in hand:
-                r = card.getRank()
-
-                if r in ranksToAttack:
-                    legibleAttacks.append(card)
-
+            legibleAttacks = [card for card in hand if card.rank in ranksOnTable]
             legibleAttacks.append(0)
             return legibleAttacks
+            
 
         ##Bystander
         else:
@@ -132,27 +112,46 @@ class Round:
     def defenderTurn(self, defender):
         pm = self.possibleMoves(defender)
         action = defender.chooseAction(pm, defender.getRole())
-
         return action
     
     def addAttack(self, card):
         self.gamestate.attackDefensePairs.append((card, None))
 
-    def talonDraw(self):
-        playerIndex = self.attackingPlayerIndex
+    def addDefense(self, defenseCard, attackCard):
+        for i, (a, d) in enumerate(self.gamestate.attackDefensePairs):
+            if a == attackCard and d is None:
+                self.gamestate.attackDefensePairs[i] = (a, defenseCard)
+                return True
+        
+        return False 
 
-        for i in range(len(self.playerList)):
-            currentPlayer = self.playerList[playerIndex]
+    def talonDraw(self, attackerIndex):
+        order = [(attackerIndex + i) % len(self.playerList) for i in range(len(self.playerList))]
 
-            while (len(currentPlayer.getHand()) < 6) and (len(self.gamestate.talon) > 0):
+        for playerIndex in order:
+
+            player = self.playerList[playerIndex]
+            drawCount = 0
+
+            while len(player.hand) < 6 and (len(self.gamestate.talon) > 0):
                 card = self.gamestate.talon.pop()
-                currentPlayer.addCard(card)
+                player.addCard(card)
+                drawCount += 1
 
-            if (len(self.gamestate.talon) == 0):
-                print("Talon has been emptied, drawing cards is over")
+                if len(self.gamestate.talon) == 0:
+                    print("\nThe talon has been emptied.")
+                    break
 
-            playerIndex = (playerIndex - 1) % len(self.playerList)
+            if drawCount == 0:
+                print(f"Player {player.playerID} draws no cards")
 
+            elif drawCount == 1:    
+                print(f"Player {player.playerID} draws a card")
+
+            else:
+                print(f"Player {player.playerID} draws {drawCount} cards")
+
+            
     def numAttackers(self):
         if len(self.playerList) > 2:
             return 2
@@ -172,6 +171,7 @@ class Round:
         iteration = 0
 
         self.determineRoles()
+        numAttackers = self.numAttackers()
 
         for player in self.playerList:
             print(player)
@@ -188,8 +188,7 @@ class Round:
 
             if iteration % 2 == 0:
                 skipAttackCount = 0
-                numAttackers = self.numAttackers()
-
+                
                 ##Turn 0, only the attacker can do anything in the initial round
                 if iteration == 0:
                     attacker = self.playerList[self.attackingPlayerIndex]
@@ -200,6 +199,9 @@ class Round:
                     self.addAttack(action)
                     attacker.playCard(action)
 
+                    ##Change attack
+                    attacker.setRole(2)
+
                 else:
 
                     for player in self.playerList:
@@ -207,6 +209,9 @@ class Round:
                         ##If player is the attacker or the bystander.
                         if player.getRole() == 0 or player.getRole() == 2:
                             
+                            if len(player.hand) == 0:
+                                print(f"\nPlayer {player.playerID} has no more cards to attack with.")
+
                             ##Maximum of 6 attack cards
                             if len(self.gamestate.attackDefensePairs) > 5:
                                 print("\nThere are now 6 attack cards in play.")
@@ -217,15 +222,16 @@ class Round:
                             if action != 0:
 
                                 self.addAttack(action)
-                                print(f"The {action} has been added to the attack pile.")
+                                print(f"The {action} has been added to the attack pile.\n")
                                 
                                 player.playCard(action)
                                 skipAttackCount = 0
 
                             else:
                                 skipAttackCount += 1
-                                
-                                if self.defenseCheck():
+                                print(f"Attacker does not contribute to attack.\n")
+
+                                if self.defenseCheck(defender, skipAttackCount):
                                     isOver = True
                                     defenseSuccess = True
                                     break
@@ -251,8 +257,16 @@ class Round:
                     
                     ##Else, play the card, check to see if defender has succeeded in defending all attacks.
                     else:
-                        self.addDefense(action)
-                        defender.playCard(action)
+                        defenseCard, attackCard = action
+                        
+                        defenseCheck = self.addDefense(defenseCard, attackCard)
+                        print(f"The {attackCard} is defended by {defenseCard}\n")
+
+                        if defenseCheck is False:
+                            print("\nFailed to defend attack. The attack card was not found.")
+                            break
+
+                        defender.playCard(defenseCard)
 
                         if self.defenseCheck(defender, skipAttackCount):
                             isOver = True
@@ -261,10 +275,28 @@ class Round:
 
             iteration += 1
         
-        if defenseSuccess is False:
-            self.defenderPickup(defender)
-            
-        elif defenseSuccess is True:
-            self.discardCards()
+        attackerIndex = None
 
-        return self.playerList()
+        ##If defense is a success, all cards are sent to discard pile.
+        if defenseSuccess is True:
+            self.discardCards()
+            attackerIndex = (self.attackingPlayerIndex + 1) % len(self.playerList)
+            print(f"End of round. Attack was beaten by defense.\nAll cards are moved to the discard pile.\n")
+
+        ##If defense is unsuccessful, defender picks up all cards
+        else:
+            self.defenderPickup(defender)
+            attackerIndex = (self.attackingPlayerIndex + 2) % len(self.playerList)
+            print(f"End of round. Defender picks up all cards on the table.\n")
+
+        self.talonDraw(self.attackingPlayerIndex)
+
+        for i, player in enumerate(self.playerList):
+
+            if len(player.hand) == 0:
+                print(f"Player {player.playerID} has emptied their hand.\nThey bow out.")
+                self.playerList.pop(i)
+
+        return self.playerList, attackerIndex
+        
+        

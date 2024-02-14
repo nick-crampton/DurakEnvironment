@@ -12,7 +12,7 @@ class HumanPlayer(Player):
 
         if role == 0 or role == 2:
 
-            print("You are attacking.")
+            print("You are attacking.\n")
             self.displayPossibleMoves(possibleMoves)
 
             ##Choose which card to attack with:
@@ -38,7 +38,7 @@ class HumanPlayer(Player):
 
         if role == 1:
 
-            print("You are defending - All cards need to be defended.")
+            print("You are defending - All cards need to be defended.\n")
 
             undefendedCards = self.gamestate.undefendedCards()
 
@@ -82,7 +82,7 @@ class HumanPlayer(Player):
 
                                 if choice2 < (len(defensibleActions) - 2):
                                     defensiveCard = defensibleActions[choice2]
-                                    return (selectedAttackCard, defensiveCard)
+                                    return (defensiveCard, selectedAttackCard)
                                 
                                 elif choice2 == (len(defensibleActions) - 2):
                                     return -1
