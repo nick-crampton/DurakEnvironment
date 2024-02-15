@@ -8,7 +8,6 @@ import random
 class AgentPlayer(Player):
     def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, deckCount):
         super().__init__(hand, playerID, gamestate)
-        self.qTable = qTable
         self.learningRate = learningRate
         self.discount = discount
         self.epsilon = epsilon
@@ -18,23 +17,26 @@ class AgentPlayer(Player):
 
     def chooseAction(self, possibleMoves, role, playerList, deckCount):
 
-        state = tuple(self.getStateRepresentation(deckCount, playerList, role))
+        currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
         
         if np.random.rand() < self.epsilon:
-            randomAction = random.choice(possibleMoves)
-            return randomAction
+            chosenAction = random.choice(possibleMoves)
+            return chosenAction
 
         else:
             qValues = {}
 
             for action in possibleMoves:
-                qValues[action] = self.qTable.get((state, action), 0)
+                qValues[action] = self.qTable.get((currentState, action), 0)
 
             maxQ = max(qValues.values())
 
             maxQ_Actions = [action for action, q in qValues.items() if q == maxQ]
-            action = random.choice(maxQ_Actions)
-            return action
+            chosenAction = random.choice(maxQ_Actions)
+
+        self.epsilon = max()
+
+        return chosenAction
     
     ##State representation
     def encodeHand(self, deckCount):
@@ -101,5 +103,4 @@ class AgentPlayer(Player):
 
         return state
     
-    def receiveReward(self, reward):
-        
+    ##def receiveReward(self, reward):

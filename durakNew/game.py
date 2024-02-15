@@ -41,6 +41,7 @@ class Game:
                 pass
             elif playerType == 2:
                 ##Create AgentPlayer
+                newPlayer = AgentPlayer([], i, self.gamestate, learningRate=0.1, discount=0.95, epsilon=0.1, deckCount=len(self.deck))
                 pass
 
             self.playerList.append(newPlayer)
@@ -67,6 +68,8 @@ class Game:
     def rewards(self):
         durak = self.playerList[0]
 
+        print(f"\nGAME OVER. {durak} is the Durak.")
+
         for player in self.initialPlayers:
             if isinstance(player, AgentPlayer):
                 if player == durak:
@@ -77,11 +80,12 @@ class Game:
                 player.receiveReward(reward)
 
     def newGame(self):
-        ##First, create all the new players
-        self.createPlayers(self.noPlayers)
         
         ##Generate and shuffle new deck
         self.deck = Deck.generateDeck()
+
+        ##Create all the new players
+        self.createPlayers(self.noPlayers)
 
         ##Deal 6 cards to each player
         self.dealHands(self.deck)
@@ -94,8 +98,7 @@ class Game:
             round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
             self.playerList, attackingPlayerIndex = round.playRound()
 
-        print(f"\nGAME OVER. {durak} is the Durak.")
-        self.
+        self.rewards()
 
 
 

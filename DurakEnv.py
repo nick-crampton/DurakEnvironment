@@ -5,7 +5,7 @@ from durakNew.game import Game
 ## Bot      - 1
 ## Agent    - 2
 
-playerList = [0, 1]
+playerList = [1, 2]
 
 game = Game(playerList)
 game.newGame()

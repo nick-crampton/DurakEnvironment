@@ -6,7 +6,7 @@ class RandomBot(Player):
     def __init__(self, hand, playerID, gamestate):
         super().__init__(hand, playerID, gamestate)
 
-    def chooseAction(self, possibleMoves, role = None):
+    def chooseAction(self, possibleMoves, role):
         if role == 1:
 
             ##Get a list of undefended cards
