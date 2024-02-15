@@ -34,8 +34,6 @@ class AgentPlayer(Player):
 
             self.qTable[(state, action)] = qValue
 
-
-
     def chooseAction(self, possibleMoves, role, playerList, deckCount):
 
         currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
