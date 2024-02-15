@@ -14,6 +14,27 @@ class AgentPlayer(Player):
         self.deckCount = deckCount
 
         self.qTable = {}
+        
+        self.episode = []
+        self.reward = None
+
+    def receiveReward(self, reward):
+        self.reward = reward
+
+    def updateQValues(self):
+        
+        for state, action in reversed(self.episode):
+
+            qValue = self.qTable.get((state, action), 0)
+            ##Return the highest future Q-value based on the next state and all actions within an episode/game.
+            bestQ = max((self.qTable.get(nextState, nextAction), 0) for nextState, nextAction in self.episode if nextState != state)
+
+            ##Q-learning function
+            qValue += self.learningRate * ((self.reward + self.discount) * bestQ - qValue)
+
+            self.qTable[(state, action)] = qValue
+
+
 
     def chooseAction(self, possibleMoves, role, playerList, deckCount):
 
@@ -34,11 +55,10 @@ class AgentPlayer(Player):
             maxQ_Actions = [action for action, q in qValues.items() if q == maxQ]
             chosenAction = random.choice(maxQ_Actions)
 
-        self.epsilon = max()
+        self.episode.append((currentState, chosenAction))
 
         return chosenAction
     
-    ##State representation
     def encodeHand(self, deckCount):
         encodedHand = [0] * deckCount
         for card in self.hand:
