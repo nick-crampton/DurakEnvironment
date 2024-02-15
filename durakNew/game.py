@@ -3,6 +3,7 @@ from durakNew.round import Round
 from durakNew.gamestate import GameState
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.randomBot import RandomBot
+from durakNew.playerTypes.agentPlayer import AgentPlayer
 from durakNew.deck import Deck
 
 import random
@@ -22,6 +23,7 @@ class Game:
         self.deck = None
 
         self.playerList = []
+        self.initialPlayers = []
         self.gamestate = GameState()
 
     def createPlayers(self, noPlayers):
@@ -42,6 +44,8 @@ class Game:
                 pass
 
             self.playerList.append(newPlayer)
+            self.initialPlayers.append(newPlayer)
+            
 
     def dealHands(self, activeDeck):
         
@@ -59,6 +63,18 @@ class Game:
         self.gamestate.trumpSuit = trumpCard.suit
 
         print(f"Trump suit is {self.gamestate.trumpSuit}\n")
+
+    def rewards(self):
+        durak = self.playerList[0]
+
+        for player in self.initialPlayers:
+            if isinstance(player, AgentPlayer):
+                if player == durak:
+                    reward = -1
+                else:
+                    reward = 1
+
+                player.receiveReward(reward)
 
     def newGame(self):
         ##First, create all the new players
@@ -78,9 +94,12 @@ class Game:
             round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
             self.playerList, attackingPlayerIndex = round.playRound()
 
-            if len(self.playerList) == 1:
-                durak = self.playerList[0]
-                print(f"\nGAME OVER. {durak} is the Durak.")
+        print(f"\nGAME OVER. {durak} is the Durak.")
+        self.
+
+
+
+                
 
 
 

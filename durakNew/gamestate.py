@@ -3,7 +3,6 @@ class GameState:
     def __init__(self):
         self.trumpSuit = None
         self.attackDefensePairs = []
-        self.playerHands = {}
         self.talon = []
         self.discardPile = []
         self.activeRole = None
@@ -16,6 +15,12 @@ class GameState:
     
     def getDefenseCards(self):
         return [pair[1] for pair in self.attackDefensePairs if pair[1] is not None]
+    
+    def getTalonCount(self):
+        return len(self.talon)
+    
+    def getDiscardCount(self):
+        return len(self.discardPile)
 
     def __str__(self):
         output = []
@@ -23,19 +28,7 @@ class GameState:
         ##Trump Suit
         output.append(f"Trump Suit: {self.trumpSuit}")
 
-        ##Attacking Cards
-        output.append("Attacking Cards:")
-        output.extend(printCardLists(self.attackingCards))
-
-        ##Defending Cards
-        output.append("Defending Cards:")
         output.extend(printCardLists(self.defendingCards))
-
-        ##Player Hands
-        output.append("Player Hands:")
-        for player, hand in self.playerHands.items():
-            output.append(f"  Player {player}:")
-            output.extend(printCardLists(hand))
 
         ##Talon
         output.append("Talon:")

@@ -106,7 +106,7 @@ class Round:
 
     def attackerTurn(self, attacker):
         pm = self.possibleMoves(attacker)
-        action = attacker.chooseAction(pm, attacker.getRole())
+        action = attacker.chooseAction(pm, attacker.getRole(), self.playerList)
         return action
 
     def defenderTurn(self, defender):
