@@ -15,7 +15,7 @@ playerType = {
 }
 
 class Game:
-    def __init__(self, playerTypes):
+    def __init__(self, playerTypes, lrParams = None):
         self.noPlayers = len(playerTypes)
         self.playerTypes = playerTypes
 
@@ -25,6 +25,9 @@ class Game:
         self.playerList = []
         self.initialPlayers = []
         self.gamestate = GameState()
+
+        self.lrParams = lrParams if not None else {}
+
 
     def createPlayers(self, noPlayers):
         for i in range(noPlayers):
@@ -41,12 +44,11 @@ class Game:
                 pass
             elif playerType == 2:
                 ##Create AgentPlayer
-                newPlayer = AgentPlayer([], i, self.gamestate, learningRate=0.1, discount=0.95, epsilon=0.1, deckCount=len(self.deck))
+                newPlayer = AgentPlayer([], i, self.gamestate, learningRate = self.lrParams["learningRate"], discount=self.lrParams["discount"], epsilon=self.lrParams["epsilon"], deckCount=len(self.deck))
                 pass
 
             self.playerList.append(newPlayer)
             self.initialPlayers.append(newPlayer)
-            
 
     def dealHands(self, activeDeck):
         
@@ -99,10 +101,4 @@ class Game:
             self.playerList, attackingPlayerIndex = round.playRound()
 
         self.rewards()
-
-
-
-                
-
-
 
