@@ -97,8 +97,8 @@ class Round:
             if skipAttackCount >= numAttackers:
                 return True
             
-            ##Scenario 2: Attack has played 6 cards, and defender has defender beat all 6
-            elif len(self.gamestate.attackDefensePairs) == 6:
+            ##Scenario 2: Attack has played cards, and defender has defender beat all in maxHand
+            elif len(self.gamestate.attackDefensePairs) == self.gamestate.maxHand:
                 return True
         
         ##Scenario 3: Defender manages to defend with every card in their hand
@@ -108,7 +108,7 @@ class Round:
 
     def attackerTurn(self, attacker):
         pm = self.possibleMoves(attacker)
-        if isinstance(Player, AgentPlayer):
+        if isinstance(attacker, AgentPlayer):
             action = attacker.chooseAction(pm, attacker.getRole(), self.playerList)
 
         else:
@@ -119,7 +119,7 @@ class Round:
     def defenderTurn(self, defender):
         pm = self.possibleMoves(defender)
         
-        if isinstance(Player, AgentPlayer):
+        if isinstance(defender, AgentPlayer):
             action = defender.chooseAction(pm, defender.getRole(), self.playerList)
 
         else:
@@ -146,7 +146,7 @@ class Round:
             player = self.playerList[playerIndex]
             drawCount = 0
 
-            while len(player.hand) < 6 and (len(self.gamestate.talon) > 0):
+            while len(player.hand) < self.gamestate.maxHand and (len(self.gamestate.talon) > 0):
                 card = self.gamestate.talon.pop()
                 player.addCard(card)
                 drawCount += 1
@@ -225,9 +225,9 @@ class Round:
                             if len(player.hand) == 0:
                                 print(f"\nPlayer {player.playerID} has no more cards to attack with.")
 
-                            ##Maximum of 6 attack cards
-                            if len(self.gamestate.attackDefensePairs) > 5:
-                                print("\nThere are now 6 attack cards in play.")
+                            ##Maximum of maxHand attack cards
+                            if len(self.gamestate.attackDefensePairs) > (self.gamestate.maxHand - 1):
+                                print("\nThere are now the maximum attack cards in play.")
                                 break
 
                             action = self.attackerTurn(player)

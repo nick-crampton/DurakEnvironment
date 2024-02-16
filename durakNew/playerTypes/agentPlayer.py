@@ -4,6 +4,8 @@ from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList 
 import numpy as np
 import random
+import json
+import os
 
 class AgentPlayer(Player):
     def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, deckCount):
@@ -34,10 +36,52 @@ class AgentPlayer(Player):
 
             self.qTable[(state, action)] = qValue
 
-    def chooseAction(self, possibleMoves, role, playerList, deckCount):
+    def chooseAction(self, possibleMoves, role, playerList):
+        deckCount = self.deckCount
 
         currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
-        
+
+        if role == 1:
+            
+            ##Get a list of undefended cards
+            undefended = self.gamestate.undefendedCards()
+
+            ##Create all possible tuples of (defenseCard, attackCard) from possibleMoves nested lists
+            attackDefensePairs = []
+
+            ##Loop through nested lists, a list for each undefended card.
+            for attackCard, defenses in zip(undefended, possibleMoves):
+                ##loop through all cards that can defend said attack card
+                for defenseCard in defenses:
+                    
+                    if isinstance(defenseCard, Card):
+                        attackDefensePairs.append((defenseCard, attackCard))
+
+                    if defenseCard == -1:
+                        attackDefensePairs.append(-1)
+
+            encodedActions = [self.encodeAction(action) for action in attackDefensePairs]
+
+            if np.random.rand() < self.epsilon:
+                chosenAction = random.choice(encodedActions)
+            
+            else:
+                qValues = {}
+
+                for action in possibleMoves:
+                    ##Gets actions from qTable given state if it exists
+                    ##If not returns 0
+                    qValues[action] = self.qTable.get((currentState, action), 0)
+
+                ##Returns best possible action
+                maxQ = max(qValues.values())
+
+                maxQ_Actions = [action for action, q in qValues.items() if q == maxQ]
+                chosenAction = random.choice(maxQ_Actions)
+
+                self.episode.append((currentState, chosenAction))
+
+
         if np.random.rand() < self.epsilon:
             chosenAction = random.choice(possibleMoves)
             return chosenAction
@@ -53,10 +97,25 @@ class AgentPlayer(Player):
             maxQ_Actions = [action for action, q in qValues.items() if q == maxQ]
             chosenAction = random.choice(maxQ_Actions)
 
-        self.episode.append((currentState, chosenAction))
+            self.episode.append((currentState, chosenAction))
+            return chosenAction
 
-        return chosenAction
-    
+    def encodeAction(self, action):
+        if isinstance(action, tuple) and isinstance(action[0], Card):
+            return ('defend', action[0].suit, action[0].rank, action[1].suit, action[1].rank)
+        
+        elif isinstance(action, Card):
+            return ('action', action.suit, action.rank)
+        
+        elif isinstance(action, int):
+            if action == -1:
+                return ('pickup', -1)
+            
+            if action == 0:
+                return ('skip', 0)
+            
+        return None
+
     def encodeHand(self, deckCount):
         encodedHand = [0] * deckCount
         for card in self.hand:
@@ -108,7 +167,7 @@ class AgentPlayer(Player):
     def getStateRepresentation(self, deckCount, playerList, role):
         state = []
         state.extend(self.encodeHand(deckCount))
-        state.extend(self.encodeHandLengths(playerList))
+        state.extend(self.encodeHandLengths(deckCount, playerList))
         state.extend(self.encodeRole(role))
         state.extend(self.encodeTrump())
         state.extend(self.encodeTableCards(deckCount))
@@ -121,4 +180,4 @@ class AgentPlayer(Player):
 
         return state
     
-    ##def receiveReward(self, reward):
+

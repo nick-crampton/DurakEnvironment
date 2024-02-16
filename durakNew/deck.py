@@ -1,7 +1,7 @@
 import numpy as np
 from durakNew.card import Card
 
-from durakNew.utils.rankList import rankList
+from durakNew.utils.rankList import rankList, rankListM, rankListS
 from durakNew.utils.suitList import suitList
 
 def setTrumpSuit(card):
@@ -27,11 +27,20 @@ class Deck:
         return len(self.cards) == 0
 
     @classmethod
-    def generateDeck(cls):
+    def generateDeck(cls, dictType):
         newCards = []
 
+        if dictType == 'm':
+            rL = rankListM
+
+        elif dictType == 's':
+            rL = rankListM
+
+        else:
+            rL = rankList
+
         for suit, _ in suitList.items():
-            for rank, _ in rankList:
+            for rank, _ in rL:
                 newCards.append(Card(suit, rank))
 
         deck = cls(newCards)

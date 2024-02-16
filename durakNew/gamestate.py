@@ -5,7 +5,8 @@ class GameState:
         self.attackDefensePairs = []
         self.talon = []
         self.discardPile = []
-        self.activeRole = None
+        self.maxTalon = 0
+        self.maxHand = 0
     
     def undefendedCards(self):
         return [pair[0] for pair in self.attackDefensePairs if pair[1] is None]

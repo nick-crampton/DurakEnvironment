@@ -8,7 +8,7 @@ class RandomBot(Player):
 
     def chooseAction(self, possibleMoves, role):
         if role == 1:
-
+            
             ##Get a list of undefended cards
             undefended = self.gamestate.undefendedCards()
 
