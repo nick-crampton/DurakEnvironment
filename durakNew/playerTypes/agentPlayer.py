@@ -38,67 +38,37 @@ class AgentPlayer(Player):
 
     def chooseAction(self, possibleMoves, role, playerList):
         deckCount = self.deckCount
-
         currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
 
+        possibleMovesFlat = []
+        ##Flatten possibleMoves if agent is defending
         if role == 1:
             
-            ##Get a list of undefended cards
             undefended = self.gamestate.undefendedCards()
-
-            ##Create all possible tuples of (defenseCard, attackCard) from possibleMoves nested lists
             attackDefensePairs = []
 
-            ##Loop through nested lists, a list for each undefended card.
             for attackCard, defenses in zip(undefended, possibleMoves):
-                ##loop through all cards that can defend said attack card
-                for defenseCard in defenses:
-                    
-                    if isinstance(defenseCard, Card):
-                        attackDefensePairs.append((defenseCard, attackCard))
 
-                    if defenseCard == -1:
+                for d in defenses:
+
+                    if isinstance(d, Card):
+                        attackDefensePairs.append((d, attackCard))
+
+                    elif d == -1:
                         attackDefensePairs.append(-1)
 
-            encodedActions = [self.encodeAction(action) for action in attackDefensePairs]
-
-            if np.random.rand() < self.epsilon:
-                chosenAction = random.choice(encodedActions)
-            
-            else:
-                qValues = {}
-
-                for action in possibleMoves:
-                    ##Gets actions from qTable given state if it exists
-                    ##If not returns 0
-                    qValues[action] = self.qTable.get((currentState, action), 0)
-
-                ##Returns best possible action
-                maxQ = max(qValues.values())
-
-                maxQ_Actions = [action for action, q in qValues.items() if q == maxQ]
-                chosenAction = random.choice(maxQ_Actions)
-
-                self.episode.append((currentState, chosenAction))
-
+            possibleMovesFlat = attackDefensePairs
+        
+        else:
+            possibleMovesFlat = possibleMoves
 
         if np.random.rand() < self.epsilon:
-            chosenAction = random.choice(possibleMoves)
-            return chosenAction
+            chosenAction = random.choice(possibleMovesFlat)
 
         else:
-            qValues = {}
+            chosenAction = self.qTableSelection(currentState, possibleMovesFlat)
 
-            for action in possibleMoves:
-                qValues[action] = self.qTable.get((currentState, action), 0)
 
-            maxQ = max(qValues.values())
-
-            maxQ_Actions = [action for action, q in qValues.items() if q == maxQ]
-            chosenAction = random.choice(maxQ_Actions)
-
-            self.episode.append((currentState, chosenAction))
-            return chosenAction
 
     def encodeAction(self, action):
         if isinstance(action, tuple) and isinstance(action[0], Card):

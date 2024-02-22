@@ -16,7 +16,7 @@ lrParams = {
 gameProperties = {
     "handCount" : 3,
     "talonCount" : 12,
-    "rankList" : rankListS
+    "rankList" : 's'
 }
 
 ##Pass array of players with their respective types:
