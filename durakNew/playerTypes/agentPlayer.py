@@ -18,7 +18,6 @@ class AgentPlayer(Player):
         self.qTable = {}
         
         self.episode = []
-        self.reward = None
 
         self.lastAction = None
         self.lastState = None
@@ -57,10 +56,8 @@ class AgentPlayer(Player):
                 encodedAction = self.encodeCard(action)
             
             elif isinstance(action, tuple):
-
                 encodedDefense = self.encodeCard(action[0])
                 encodedAttack = self.encodeCard(action[1])
-
                 encodedAction = (encodedDefense, encodedAttack)
 
             else:
@@ -74,8 +71,24 @@ class AgentPlayer(Player):
 
         return qValues, encodingMapping
 
-    def receiveReward(self, reward):
-        self.reward = reward
+    def encodeAction(self, action):
+        if isinstance(action, Card):
+            encodedAction = self.encodeCard(action)
+        
+        elif isinstance(action, tuple):
+            encodedDefense = self.encodeCard(action[0])
+            encodedAttack = self.encodeCard(action[1])
+            encodedAction = (encodedDefense, encodedAttack)
+
+        else:
+            encodedAction = action
+
+        return encodedAction
+
+    def receiveEndReward(self, reward):
+        self.lastReward = reward
+
+        self.updateQ(self.lastState, [])
 
     def qTableSelection(self, state, possibleMoves):
     
@@ -138,7 +151,8 @@ class AgentPlayer(Player):
 
         ##Choose action randomly
         if np.random.rand() < self.epsilon:
-            chosenAction = random.choice(possibleMovesFlat)
+            originalAction = random.choice(possibleMovesFlat)
+            qAction = self.encodeAction(originalAction)
 
         else:
             originalAction, qAction = self.qTableSelection(currentState, possibleMovesFlat)

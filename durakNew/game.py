@@ -63,7 +63,7 @@ class Game:
                     reward = 1
                     self.survivalCount += 1
 
-                player.receiveReward(reward)
+                player.receiveEndReward(reward)
                 self.totalReward += reward
 
     def newGame(self):
