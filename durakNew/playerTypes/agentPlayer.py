@@ -105,7 +105,7 @@ class AgentPlayer(Player):
         nextQValues, _ = self.encodeActions(possibleMoves, currentState)
         maxNextQ = max(nextQValues) if nextQValues else 0
 
-        self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount + maxNextQ - currentQ)
+        self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount * maxNextQ - currentQ)
 
     def chooseAction(self, possibleMoves, role, playerList):
         deckCount = self.deckCount
