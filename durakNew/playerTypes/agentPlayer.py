@@ -20,25 +20,99 @@ class AgentPlayer(Player):
         self.episode = []
         self.reward = None
 
+        self.lastAction = None
+        self.lastState = None
+        self.lastReward = None
+
+    def encodeCard(self, card):
+        rankLow = ['6', '7', '8']
+        rankMid = ['9', '10', 'J']
+        rankHigh = ['Q', 'K', 'A']
+
+        if card.rank in rankLow:
+            encodedRank = 0
+        
+        elif card.rank in rankMid:
+            encodedRank = 1
+
+        elif card.rank in rankHigh:
+            encodedRank = 2
+
+        else:
+            print("Not a card")
+            return None
+
+        if card.suit == self.gamestate.trumpSuit:
+            encodedRank += 3
+
+        return encodedRank
+
+    def encodeActions(self, possibleMoves, state, encodingMapping = None):
+        qValues = {}
+
+        for action in possibleMoves:
+            
+            ##Encode the actions if they are a card
+            if isinstance(action, Card):
+                encodedAction = self.encodeCard(action)
+            
+            elif isinstance(action, tuple):
+
+                encodedDefense = self.encodeCard(action[0])
+                encodedAttack = self.encodeCard(action[1])
+
+                encodedAction = (encodedDefense, encodedAttack)
+
+            else:
+                encodedAction = action
+
+            ##Map the encodings to the action using a dict
+            if encodingMapping is not None:
+                encodingMapping[encodedAction] = action
+            
+            qValues[encodedAction] = self.qTable.get((state, encodedAction), 0)
+
+        return qValues, encodingMapping
+
     def receiveReward(self, reward):
         self.reward = reward
 
-    def updateQValues(self):
-        
-        for state, action in reversed(self.episode):
+    def qTableSelection(self, state, possibleMoves):
+    
+        encodingMapping = {}
 
-            qValue = self.qTable.get((state, action), 0)
-            ##Return the highest future Q-value based on the next state and all actions within an episode/game.
-            bestQ = max((self.qTable.get(nextState, nextAction), 0) for nextState, nextAction in self.episode if nextState != state)
+        qValues, encodingMapping = self.encodeActions(possibleMoves, state, encodingMapping)
 
-            ##Q-learning function
-            qValue += self.learningRate * ((self.reward + self.discount) * bestQ - qValue)
+        maxQ = max(qValues.values())
+        bestActions = [action for action, q in qValues.items() if q == maxQ]
 
-            self.qTable[(state, action)] = qValue
+        chosenAction = random.choice(bestActions)
+        originalAction = encodingMapping[chosenAction]
+
+        ##Returns 1) the original action to pass back into the game
+        ## 2) Returns the encoded action
+        return originalAction, chosenAction
+
+    def updateQ(self, currentState, possibleMoves):
+    
+        lastState = self.lastState
+        lastAction = self.lastAction
+
+        reward = self.lastReward
+
+        currentQ = self.qTable.get((lastState, lastAction), 0)
+
+        nextQValues, _ = self.encodeActions(possibleMoves, currentState)
+        maxNextQ = max(nextQValues) if nextQValues else 0
+
+        self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount + maxNextQ - currentQ)
 
     def chooseAction(self, possibleMoves, role, playerList):
         deckCount = self.deckCount
         currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
+
+        if self.lastAction is not None and self.lastState is not None: 
+            self.updateQ(currentState, possibleMoves)
 
         possibleMovesFlat = []
         ##Flatten possibleMoves if agent is defending
@@ -62,38 +136,23 @@ class AgentPlayer(Player):
         else:
             possibleMovesFlat = possibleMoves
 
+        ##Choose action randomly
         if np.random.rand() < self.epsilon:
             chosenAction = random.choice(possibleMovesFlat)
 
         else:
-            chosenAction = self.qTableSelection(currentState, possibleMovesFlat)
+            originalAction, qAction = self.qTableSelection(currentState, possibleMovesFlat)
 
+        self.lastState = currentState
+        self.lastAction = qAction
 
-
-    def encodeAction(self, action):
-        if isinstance(action, tuple) and isinstance(action[0], Card):
-            return ('defend', action[0].suit, action[0].rank, action[1].suit, action[1].rank)
-        
-        elif isinstance(action, Card):
-            return ('action', action.suit, action.rank)
-        
-        elif isinstance(action, int):
-            if action == -1:
-                return ('pickup', -1)
-            
-            if action == 0:
-                return ('skip', 0)
-            
-        return None
+        return originalAction
 
     def encodeHand(self, deckCount):
-        encodedHand = [0] * deckCount
+        encodedHand = [0] * 6
         for card in self.hand:
-            rankIndex = dict(rankList)[card.rank]
-            suitIndex = suitList[card.suit]
-
-            cardIndex = (suitIndex * 9) + rankIndex
-            encodedHand[cardIndex] = 1
+            encodedRank = self.encodeCard(card)
+            encodedHand[encodedRank] += 1
 
         return encodedHand
 
@@ -109,38 +168,35 @@ class AgentPlayer(Player):
         roleEncoding[role] = 1
         return roleEncoding
 
-    def encodeTrump(self):
-
-        trumpEncoding = [0, 0, 0, 0]
-        
-        trumpIndex = suitList[self.gamestate.trumpSuit]
-        trumpEncoding[trumpIndex] = 1
-
-        return trumpEncoding
-    
     def encodeTableCards(self, deckCount):
 
-        tableEncoding = [0] * deckCount
+        attackVector = []
+        defenseVector = []
 
-        for card in self.gamestate.getAttackCards():
+        for attack, defense in self.gamestate.attackDefensePairs:
             
-            cardIndex = (suitList[card.suit]) * 9 + dict(rankList)[card.rank]
-            tableEncoding[cardIndex] = 1
+            encodeAttack = self.encodeCard(attack)
+            attackVector.append(encodeAttack)
 
-        for card in self.gamestate.getDefenseCards():
+            if defense is not None:
+                encodeDefense = self.encodeCard(defense)
+            
+            else:
+                encodeDefense = 0
 
-            cardIndex = (suitList[card.suit]) * 9 + dict(rankList)[card.rank]
-            tableEncoding[cardIndex] = 1
+            defenseVector.append(encodeDefense)
 
-        return tableEncoding
+        return attackVector, defenseVector
 
     def getStateRepresentation(self, deckCount, playerList, role):
         state = []
         state.extend(self.encodeHand(deckCount))
         state.extend(self.encodeHandLengths(deckCount, playerList))
         state.extend(self.encodeRole(role))
-        state.extend(self.encodeTrump())
-        state.extend(self.encodeTableCards(deckCount))
+        
+        attackVector, defenseVector = self.encodeTableCards(deckCount)
+        state.extend(attackVector)
+        state.extend(defenseVector)
 
         talonCount = len(self.gamestate.talon) / deckCount
         discardCount = len(self.gamestate.discardPile) / deckCount

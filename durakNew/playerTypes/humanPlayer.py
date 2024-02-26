@@ -112,10 +112,10 @@ class HumanPlayer(Player):
             if isinstance(move, Card):
                 print(f"{i}>>  Play {move}")
             
-            elif move == -1:
+            elif move == -1 and self.role == 1:
                 print(f"{i}>>  Pickup cards")
 
-            elif move == 0:
+            elif move == -1 and (self.role == 0 or self.role == 2):
                 print(f"{i}>>  Pass on attacking")
 
             elif move == -2:

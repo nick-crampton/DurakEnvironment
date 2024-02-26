@@ -70,7 +70,7 @@ class Round:
             ranksOnTable = {card.rank for attackCard, defenseCard in self.gamestate.attackDefensePairs for card in (attackCard, defenseCard) if card}
 
             legibleAttacks = [card for card in hand if card.rank in ranksOnTable]
-            legibleAttacks.append(0)
+            legibleAttacks.append(-1)
             return legibleAttacks
             
 
@@ -232,7 +232,7 @@ class Round:
 
                             action = self.attackerTurn(player)
 
-                            if action != 0:
+                            if action != -1:
 
                                 self.addAttack(action)
                                 print(f"The {action} has been added to the attack pile.\n")
