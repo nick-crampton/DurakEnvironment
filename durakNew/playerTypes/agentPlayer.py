@@ -206,4 +206,24 @@ class AgentPlayer(Player):
 
         return state
     
+    def averageHand(self):
+        
+        if not self.hand:
+            return 0
 
+        totalEncodedValue = sum(self.encodeCard(card) for card in self.hand)
+        averageEncodedValue = totalEncodedValue / len(self.hand)
+
+        return averageEncodedValue
+
+    def ingameReward(self, before, after):
+        avgDifference = after - before
+
+        if avgDifference > 0:
+            self.lastReward = 0.1
+
+        elif avgDifference < 0:
+            self.lastReward = -0.1
+
+        else:
+            self.lastReward = 0
