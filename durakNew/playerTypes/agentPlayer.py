@@ -25,8 +25,8 @@ class AgentPlayer(Player):
 
     def encodeCard(self, card):
         rankLow = ['6', '7', '8']
-        rankMid = ['9', '10', 'J']
-        rankHigh = ['Q', 'K', 'A']
+        rankMid = ['9', '10', 'Jack']
+        rankHigh = ['Queen', 'King', 'Ace']
 
         if card.rank in rankLow:
             encodedRank = 0
@@ -61,7 +61,7 @@ class AgentPlayer(Player):
                 encodedAction = (encodedDefense, encodedAttack)
 
             else:
-                encodedAction = action
+                encodedAction = int(action)
 
             ##Map the encodings to the action using a dict
             if encodingMapping is not None:
@@ -125,7 +125,7 @@ class AgentPlayer(Player):
         ##Gets the q values of all the possibleMoves, then gets the max qValue from these options
         else:
             nextQValues, _ = self.encodeActions(possibleMoves, currentState)
-            maxNextQ = max(nextQValues) if nextQValues else 0
+            maxNextQ = max(nextQValues.values()) if nextQValues else 0
 
         ##Q function which updates q value for state-action pair
         self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount * maxNextQ - currentQ)
@@ -133,9 +133,6 @@ class AgentPlayer(Player):
     def chooseAction(self, possibleMoves, role, playerList):
         deckCount = self.deckCount
         currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
-
-        if self.lastAction is not None and self.lastState is not None: 
-            self.updateQ(currentState, possibleMoves)
 
         possibleMovesFlat = []
         ##Flatten possibleMoves if agent is defending
@@ -158,6 +155,10 @@ class AgentPlayer(Player):
         
         else:
             possibleMovesFlat = possibleMoves
+
+        ##Update the q table based on the PREVIOUS state-action pair
+        if self.lastAction is not None and self.lastState is not None: 
+            self.updateQ(currentState, possibleMovesFlat)
 
         ##Choose action randomly
         if np.random.rand() < self.epsilon:

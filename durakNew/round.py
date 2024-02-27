@@ -342,11 +342,15 @@ class Round:
         self.talonDraw(self.attackingPlayerIndex)
 
         for i, player in enumerate(self.playerList):
-
+            finishedPlayers = []
+        
             if len(player.hand) == 0:
+                
                 print(f"Player {player.playerID} has emptied their hand.\nThey bow out.")
                 self.playerList.pop(i)
 
-        return self.playerList, attackerIndex
+                finishedPlayers.append(player)
+
+        return self.playerList, finishedPlayers, attackerIndex
         
         

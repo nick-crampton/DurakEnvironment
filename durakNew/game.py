@@ -15,6 +15,7 @@ class Game:
 
         self.playerList = playerList
         self.initialPlayers = playerList
+
         self.gamestate = GameState()
 
         self.lrParams = lrParams if not None else {}
@@ -25,10 +26,15 @@ class Game:
         self.durakCount = 0
         self.totalReward = 0
 
+        self.agent = None
+
 
     def dealHands(self, activeDeck, handCount = None, talonCount = None):
         maxHand = handCount if not None else 6
         
+        for player in self.playerList:
+            player.hand.clear()
+
         ##Deal cards to each player
         for i in range(0, maxHand):
             for player in self.playerList:
@@ -48,23 +54,20 @@ class Game:
 
         print(f"Trump suit is {self.gamestate.trumpSuit}\n")
 
-    def rewards(self):
-        durak = self.playerList[0]
+    def rewards(self, agent, survivalCheck):
+        
+        if survivalCheck == False:
+            reward = -1
+            self.durakCount += 1
 
-        print(f"\nGAME OVER. {durak} is the Durak.")
+        elif survivalCheck == True:
+            reward = 1
+            self.survivalCount += 1
 
-        for player in self.initialPlayers:
-            if isinstance(player, AgentPlayer):
-                if player == durak:
-                    reward = -1
-                    self.durakCount += 1
+        agent.receiveEndReward(reward)
+        self.totalReward += reward
 
-                else:
-                    reward = 1
-                    self.survivalCount += 1
-
-                player.receiveEndReward(reward)
-                self.totalReward += reward
+        self.agent = agent
 
     def newGame(self):
         
@@ -83,9 +86,25 @@ class Game:
         for player in self.playerList:
             player.gamestate = self.gamestate
         
-        while len(self.playerList) > 1:
-            round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
-            self.playerList, attackingPlayerIndex = round.playRound()
+        agentIn = True
 
-        self.rewards()
+        while len(self.playerList) > 1 and agentIn:
+            round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
+            self.playerList, finishedPlayers, attackingPlayerIndex = round.playRound()
+
+            ##Check if Agent has finished
+            if len(finishedPlayers) > 0:
+                for player in finishedPlayers:
+                    
+                    ##If agent survives, end game prematurely...
+                    if isinstance(player, AgentPlayer):
+                        self.rewards(player, True)
+                        agentIn = False
+                        break
+        
+        print(f"\nGAME OVER. {self.playerList[0]} is the Durak.")
+
+        ##If agent is Durak, they will be last player in playerlist
+        if isinstance(self.playerList[0], AgentPlayer):
+            self.rewards(self.playerList[0], False)
 
