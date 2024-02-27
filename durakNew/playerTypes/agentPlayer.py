@@ -88,7 +88,10 @@ class AgentPlayer(Player):
     def receiveEndReward(self, reward):
         self.lastReward = reward
 
-        self.updateQ(self.lastState, [])
+        self.updateQ(None, None, gameCompletion = True)
+
+        self.lastState = None
+        self.lastAction = None
 
     def qTableSelection(self, state, possibleMoves):
     
@@ -106,18 +109,25 @@ class AgentPlayer(Player):
         ## 2) Returns the encoded action
         return originalAction, chosenAction
 
-    def updateQ(self, currentState, possibleMoves):
+    def updateQ(self, currentState, possibleMoves, gameCompletion = False):
     
         lastState = self.lastState
         lastAction = self.lastAction
-
         reward = self.lastReward
 
+        ##Gets Q value of the last state and action used
         currentQ = self.qTable.get((lastState, lastAction), 0)
 
-        nextQValues, _ = self.encodeActions(possibleMoves, currentState)
-        maxNextQ = max(nextQValues) if nextQValues else 0
+        ##If game is over, there is no next action
+        if gameCompletion:
+            maxNextQ = 0
+        
+        ##Gets the q values of all the possibleMoves, then gets the max qValue from these options
+        else:
+            nextQValues, _ = self.encodeActions(possibleMoves, currentState)
+            maxNextQ = max(nextQValues) if nextQValues else 0
 
+        ##Q function which updates q value for state-action pair
         self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount * maxNextQ - currentQ)
 
     def chooseAction(self, possibleMoves, role, playerList):
@@ -241,3 +251,5 @@ class AgentPlayer(Player):
 
         else:
             self.lastReward = 0
+
+        
