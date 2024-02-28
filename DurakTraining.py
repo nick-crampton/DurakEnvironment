@@ -4,6 +4,7 @@ from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 import json
 import os
+import matplotlib.pyplot as plt
 
 ##RL Agent parameters
 lrParams = {
@@ -48,12 +49,13 @@ def createPlayers(playerTypes):
 
     return playerList
 
-def runExperiment(trainingIterations, playerList, lrParams, gameProperties):
+def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plotIntervals):
     
     gameStats = {
         'survivalCount': 0,
         'durakCount' : 0,
-        'totalReward': 0
+        'totalReward': 0,
+        'survivalRates': [] 
     }
 
     for i in range(trainingIterations):
@@ -70,9 +72,24 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties):
         gameStats['totalReward'] += tempAgent.totalReward
         print(f"\nreward accumulated in game is {tempAgent.totalReward}")
 
+        if i % plotIntervals == 0 and i > 0:
+            survivalRate = (gameStats['survivalCount'] / i) * 100
+            gameStats['survivalRates'].append(survivalRate)
+
     agent = game.agent
 
     return gameStats, agent
+
+def plotSurvivalRate(gameStats, interval):
+    x = list(range(interval, len(gameStats['survivalRates']) * interval + 1, interval))
+    y = gameStats['survivalRates']
+
+    plt.plot(x, y, marker='o')
+    plt.xlabel('Number of Games')
+    plt.ylabel('Survival Rate (%)')
+    plt.title('Survival Rate Over Time')
+    plt.grid(True)
+    plt.show()
 
 def saveExperimentResults(experimentNo, gameStats, agent, directory):
     filepath = os.path.join(directory, f"experiment_{experimentNo}.txt")
@@ -91,9 +108,12 @@ def saveExperimentResults(experimentNo, gameStats, agent, directory):
     print(f"Experiment results saved as {filepath}")
 
 experimentNo = 1
+intervals = 100
+
 playerList = createPlayers(playerTypes)
-gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties)
+gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
 
 targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
 saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
+plotSurvivalRate(gameStats, intervals)

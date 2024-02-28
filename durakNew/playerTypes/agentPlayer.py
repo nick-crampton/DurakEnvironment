@@ -14,7 +14,6 @@ class AgentPlayer(Player):
         self.discount = discount
         self.epsilon = epsilon
 
-
         self.qTable = {}
         
         self.episode = []
@@ -266,4 +265,3 @@ class AgentPlayer(Player):
         else:
             self.lastReward = 0
 
-        
