@@ -99,6 +99,7 @@ class Game:
                     ##If agent survives, end game prematurely...
                     if isinstance(player, AgentPlayer):
                         self.rewards(player, True)
+                        print("\nAgent survives")
                         agentIn = False
                         break
         
@@ -107,4 +108,5 @@ class Game:
         ##If agent is Durak, they will be last player in playerlist
         if isinstance(self.playerList[0], AgentPlayer):
             self.rewards(self.playerList[0], False)
+            print("\nAgent is the Durak")
 

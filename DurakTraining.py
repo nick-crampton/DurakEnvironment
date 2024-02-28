@@ -65,6 +65,7 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties):
         gameStats['survivalCount'] += game.survivalCount
         gameStats['durakCount'] += game.durakCount
         gameStats['totalReward'] += game.totalReward
+        print(f"\nreward accumulated in game is {game.totalReward}")
 
     agent = game.agent
 
