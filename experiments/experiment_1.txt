@@ -1,0 +1,6 @@
+Experiment: 1
+Survival Count = 1
+Durak Count = 0
+Total Reward = 1
+
+State-Action Pairs and Q-Values:

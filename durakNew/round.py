@@ -70,7 +70,7 @@ class Round:
             ranksOnTable = {card.rank for attackCard, defenseCard in self.gamestate.attackDefensePairs for card in (attackCard, defenseCard) if card}
 
             legibleAttacks = [card for card in hand if card.rank in ranksOnTable]
-            legibleAttacks.append(0)
+            legibleAttacks.append(-1)
             return legibleAttacks
             
 
@@ -78,12 +78,16 @@ class Round:
         else:
             return []
 
-    def defenderPickup(self, activePlayer):
+    def defenderPickup(self, activePlayer, avgHandBefore = None):
         
         print("Defender picks up all cards on the table.")
 
         activePlayer.addCards(self.gamestate.getAttackCards())
         activePlayer.addCards(self.gamestate.getDefenseCards())
+
+        if isinstance(activePlayer, AgentPlayer):
+            avgHandAfter = activePlayer.averageHand()
+            activePlayer.ingameReward(avgHandBefore, avgHandAfter)
 
         self.gamestate.attackDefensePairs.clear()
 
@@ -163,8 +167,7 @@ class Round:
 
             else:
                 print(f"Player {player.playerID} draws {drawCount} cards")
-
-            
+ 
     def numAttackers(self):
         if len(self.playerList) > 2:
             return 2
@@ -210,7 +213,16 @@ class Round:
                     print(f"Player {attacker.playerID} has played the {action} to begin the attack!")
 
                     self.addAttack(action)
+                    
+                    ##For agents, calculate average hand before and after playing an action, for rewards
+                    if isinstance(attacker, AgentPlayer):
+                        avgHandBefore = attacker.averageHand()
+
                     attacker.playCard(action)
+
+                    if isinstance(attacker, AgentPlayer):
+                        avgHandAfter = attacker.averageHand()
+                        attacker.ingameReward(avgHandBefore, avgHandAfter)
 
                     ##Change attack
                     attacker.setRole(2)
@@ -232,7 +244,11 @@ class Round:
 
                             action = self.attackerTurn(player)
 
-                            if action != 0:
+                            ##For agents, calculate average hand before and after playing an action, for rewards
+                            if isinstance(player, AgentPlayer):
+                                avgHandBefore = player.averageHand()
+
+                            if action != -1:
 
                                 self.addAttack(action)
                                 print(f"The {action} has been added to the attack pile.\n")
@@ -240,9 +256,17 @@ class Round:
                                 player.playCard(action)
                                 skipAttackCount = 0
 
+                                if isinstance(player, AgentPlayer):
+                                    avgHandAfter = player.averageHand()
+                                    player.ingameReward(avgHandBefore, avgHandAfter)
+
                             else:
                                 skipAttackCount += 1
                                 print(f"Attacker does not contribute to attack.\n")
+
+                                if isinstance(player, AgentPlayer):
+                                    avgHandAfter = player.averageHand()
+                                    player.ingameReward(avgHandBefore, avgHandAfter)
 
                                 if self.defenseCheck(defender, skipAttackCount):
                                     isOver = True
@@ -260,6 +284,10 @@ class Round:
 
                     ##Return defenders action
                     action = self.defenderTurn(defender)
+
+                    ##For agents, calculate average hand before and after playing an action, for rewards
+                    if isinstance(defender, AgentPlayer):
+                        avgHandBefore = defender.averageHand()
 
                     ##If action is -1, defender picks up all cards and round is over.
                     if action == -1:
@@ -281,6 +309,10 @@ class Round:
 
                         defender.playCard(defenseCard)
 
+                        if isinstance(defender, AgentPlayer):
+                            avgHandAfter = defender.averageHand()
+                            defender.ingameReward(avgHandBefore, avgHandAfter)
+
                         if self.defenseCheck(defender, skipAttackCount):
                             isOver = True
                             defenseSuccess = True
@@ -298,18 +330,27 @@ class Round:
 
         ##If defense is unsuccessful, defender picks up all cards
         else:
-            self.defenderPickup(defender)
+            if isinstance(defender, AgentPlayer):
+                self.defenderPickup(defender, avgHandBefore)
+
+            else:
+                self.defenderPickup(defender)
+            
             attackerIndex = (self.attackingPlayerIndex + 2) % len(self.playerList)
             print(f"End of round. Defender picks up all cards on the table.\n")
 
         self.talonDraw(self.attackingPlayerIndex)
 
         for i, player in enumerate(self.playerList):
-
+            finishedPlayers = []
+        
             if len(player.hand) == 0:
+                
                 print(f"Player {player.playerID} has emptied their hand.\nThey bow out.")
                 self.playerList.pop(i)
 
-        return self.playerList, attackerIndex
+                finishedPlayers.append(player)
+
+        return self.playerList, finishedPlayers, attackerIndex
         
         
