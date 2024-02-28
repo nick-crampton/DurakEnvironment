@@ -16,7 +16,7 @@ lrParams = {
 gameProperties = {
     "handCount" : 3,
     "talonCount" : 12,
-    "rankList" : 's'
+    "rankList" : 'd'
 }
 
 ##Pass array of players with their respective types:
@@ -24,7 +24,7 @@ gameProperties = {
 ## Bot      - 1
 ## Agent    - 2
 
-trainingIterations = 100
+trainingIterations = 1000
 playerTypes = [2, 1]
 
 def createPlayers(playerTypes):
@@ -51,57 +51,45 @@ def createPlayers(playerTypes):
 def runExperiment(trainingIterations, playerList, lrParams, gameProperties):
     
     gameStats = {
-        'winCount': 0,
         'survivalCount': 0,
-        'totalReward': 0,
+        'durakCount' : 0,
+        'totalReward': 0
     }
 
     for i in range(trainingIterations):
+        print(f"\nGame {i+1}")
+
         game = Game(playerList, lrParams, gameProperties)
         game.newGame()
 
-        gameStats['winCount'] += game.winCount
         gameStats['survivalCount'] += game.survivalCount
+        gameStats['durakCount'] += game.durakCount
         gameStats['totalReward'] += game.totalReward
 
-    agent = getAgent(playerList)
+    agent = game.agent
 
     return gameStats, agent
 
-def getAgent(playerList):
-
-    for player in playerList:
-
-        if isinstance(player, AgentPlayer):
-            return player
-        
-        else:
-            print("no agent found.")
-            return None
-
-def saveQ_Table(qTable, filename, directory):
-    filepath = os.path.join(directory, filename)
+def saveExperimentResults(experimentNo, gameStats, agent, directory):
+    filepath = os.path.join(directory, f"experiment_{experimentNo}.txt")
     os.makedirs(directory, exist_ok=True)
 
-    qTable_to_json = json.dumps(qTable)
-    with open(filename, "w") as file:
-        file.write(qTable_to_json)
+    with open(filepath, "w") as file:
+        file.write(f"Experiment: {experimentNo}\n")
+        file.write(f"Survival Count = {gameStats['survivalCount']}\n")
+        file.write(f"Durak Count = {gameStats['durakCount']}\n")
+        file.write(f"Total Reward = {gameStats['totalReward']}\n\n")
+        file.write("State-Action Pairs and Q-Values:\n")
 
-    print(f"Q-table saved as {filename}")
+        for key, value in agent.qTable.items():
+            file.write(f"{key}: {value}\n")
 
-def loadQ_Table(qTable, filename, directory):
-    
-    with open(filename, "r") as file:
-        qTable_from_json = file.read()
+    print(f"Experiment results saved as {filepath}")
 
-    qTable = json.loads(qTable_from_json)
-    return qTable
-
-
+experimentNo = 1
 playerList = createPlayers(playerTypes)
-experimentX, agentX = runExperiment(trainingIterations, playerList, lrParams, gameProperties)
+gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties)
 
-fname = "experimentX.json"
 targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
-saveQ_Table(agentX.qTable, fname, targetDirectory)
 
+saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
