@@ -23,6 +23,8 @@ class AgentPlayer(Player):
         self.lastState = None
         self.lastReward = None
 
+        self.totalReward = 0
+
     def encodeCard(self, card):
         rankLow = ['6', '7', '8']
         rankMid = ['9', '10', 'Jack']
@@ -87,6 +89,7 @@ class AgentPlayer(Player):
 
     def receiveEndReward(self, reward):
         self.lastReward = reward
+        self.totalReward += reward
 
         self.updateQ(None, None, gameCompletion = True)
 
@@ -246,9 +249,11 @@ class AgentPlayer(Player):
 
         if avgDifference > 0:
             self.lastReward = 0.1
+            self.totalReward += 0.1
 
         elif avgDifference < 0:
             self.lastReward = -0.1
+            self.totalReward -= 0.1
 
         else:
             self.lastReward = 0

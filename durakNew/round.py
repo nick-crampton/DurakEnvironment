@@ -200,7 +200,7 @@ class Round:
 
         while not isOver:
 
-            print(f"\nIteration {iteration}:")
+            print(f"\nIteration {iteration + 1}:")
 
             if iteration % 2 == 0:
                 skipAttackCount = 0

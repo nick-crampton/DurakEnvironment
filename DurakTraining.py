@@ -24,7 +24,7 @@ gameProperties = {
 ## Bot      - 1
 ## Agent    - 2
 
-trainingIterations = 1000
+trainingIterations = 5
 playerTypes = [2, 1]
 
 def createPlayers(playerTypes):
@@ -64,8 +64,11 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties):
 
         gameStats['survivalCount'] += game.survivalCount
         gameStats['durakCount'] += game.durakCount
-        gameStats['totalReward'] += game.totalReward
-        print(f"\nreward accumulated in game is {game.totalReward}")
+        
+        tempAgent = game.agent
+        
+        gameStats['totalReward'] += tempAgent.totalReward
+        print(f"\nreward accumulated in game is {tempAgent.totalReward}")
 
     agent = game.agent
 

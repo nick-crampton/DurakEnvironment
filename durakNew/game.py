@@ -24,7 +24,6 @@ class Game:
         ##Track Agent performance
         self.survivalCount = 0
         self.durakCount = 0
-        self.totalReward = 0
 
         self.agent = None
 
@@ -52,7 +51,7 @@ class Game:
         trumpCard = self.gamestate.talon[-1]
         self.gamestate.trumpSuit = trumpCard.suit
 
-        print(f"Trump suit is {self.gamestate.trumpSuit}\n")
+        print(f"Trump suit is {self.gamestate.trumpSuit}")
 
     def rewards(self, agent, survivalCheck):
         
@@ -65,7 +64,6 @@ class Game:
             self.survivalCount += 1
 
         agent.receiveEndReward(reward)
-        self.totalReward += reward
 
         self.agent = agent
 
@@ -87,8 +85,14 @@ class Game:
             player.gamestate = self.gamestate
         
         agentIn = True
+        
+        roundCounter = 1
+        finishedGamePlayers = []
 
         while len(self.playerList) > 1 and agentIn:
+
+            print(f"\n----------------------------\nRound {roundCounter}")
+
             round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
             self.playerList, finishedPlayers, attackingPlayerIndex = round.playRound()
 
@@ -102,6 +106,10 @@ class Game:
                         print("\nAgent survives")
                         agentIn = False
                         break
+
+                finishedGamePlayers.extend(finishedPlayers)       
+            
+            roundCounter += 1
         
         print(f"\nGAME OVER. {self.playerList[0]} is the Durak.")
 
@@ -109,4 +117,7 @@ class Game:
         if isinstance(self.playerList[0], AgentPlayer):
             self.rewards(self.playerList[0], False)
             print("\nAgent is the Durak")
+
+        ##Once game is finished, add all players back into playerList for next game...
+        self.playerList.extend(finishedGamePlayers)
 
