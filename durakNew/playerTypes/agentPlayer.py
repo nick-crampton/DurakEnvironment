@@ -8,12 +8,12 @@ import json
 import os
 
 class AgentPlayer(Player):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, deckCount):
+    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon):
         super().__init__(hand, playerID, gamestate)
         self.learningRate = learningRate
         self.discount = discount
         self.epsilon = epsilon
-        self.deckCount = deckCount
+
 
         self.qTable = {}
         
@@ -134,8 +134,7 @@ class AgentPlayer(Player):
         self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount * maxNextQ - currentQ)
 
     def chooseAction(self, possibleMoves, role, playerList):
-        deckCount = self.deckCount
-        currentState = tuple(self.getStateRepresentation(deckCount, playerList, role))
+        currentState = tuple(self.getStateRepresentation(playerList, role))
 
         possibleMovesFlat = []
         ##Flatten possibleMoves if agent is defending
@@ -176,7 +175,7 @@ class AgentPlayer(Player):
 
         return originalAction
 
-    def encodeHand(self, deckCount):
+    def encodeHand(self):
         encodedHand = [0] * 6
         for card in self.hand:
             encodedRank = self.encodeCard(card)
@@ -184,7 +183,7 @@ class AgentPlayer(Player):
 
         return encodedHand
 
-    def encodeHandLengths(self, deckCount, playerList):
+    def encodeHandLengths(self, playerList):
 
         agentHandLen = len(self.hand)
 
@@ -203,37 +202,37 @@ class AgentPlayer(Player):
     
     def encodeRole(self, role):
 
-        roleEncoding = [0, 0, 0, 0]
+        roleEncoding = [0, 0]
         roleEncoding[role] = 1
         return roleEncoding
 
-    def encodeTableCards(self, deckCount):
+    def encodeTableCards(self):
 
-        attackVector = []
-        defenseVector = []
+        attackVector = [0] * self.gamestate.maxHand
+        defenseVector = [0] * self.gamestate.maxHand
 
-        for attack, defense in self.gamestate.attackDefensePairs:
+        for i, (attack, defense) in enumerate(self.gamestate.attackDefensePairs):
             
             encodeAttack = self.encodeCard(attack)
-            attackVector.append(encodeAttack)
+            attackVector[i] = encodeAttack
 
             if defense is not None:
                 encodeDefense = self.encodeCard(defense)
             
             else:
-                encodeDefense = 0
+                encodeDefense = -1
 
-            defenseVector.append(encodeDefense)
+            defenseVector[i] = encodeDefense
 
         return attackVector, defenseVector
 
-    def getStateRepresentation(self, deckCount, playerList, role):
+    def getStateRepresentation(self, playerList, role):
         state = []
-        state.extend(self.encodeHand(deckCount))
-        state.extend(self.encodeHandLengths(deckCount, playerList))
+        state.extend(self.encodeHand())
+        state.extend(self.encodeHandLengths(playerList))
         state.extend(self.encodeRole(role))
         
-        attackVector, defenseVector = self.encodeTableCards(deckCount)
+        attackVector, defenseVector = self.encodeTableCards()
         state.extend(attackVector)
         state.extend(defenseVector)
 

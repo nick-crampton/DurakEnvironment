@@ -26,19 +26,29 @@ class Round:
                 role = 1
 
             elif position == 2 and numPlayers >= 3:
-                role = 2
+                role = 0
             
             else:
-                role = 3
+                role = 2
 
             self.playerList[i].setRole(role)
 
-    def possibleMoves(self, activePlayer):
+    def possibleMoves(self, activePlayer, iteration = None):
         role = activePlayer.getRole()
         hand = activePlayer.getHand()
 
         ##Attacker
         if role == 0:
+            if iteration > 0:
+                
+                if len(self.gamestate.getAttackCards()) > 0:
+                    ranksOnTable = {card.rank for attackCard, defenseCard in self.gamestate.attackDefensePairs for card in (attackCard, defenseCard) if card}
+                    legibleAttacks = [card for card in hand if card.rank in ranksOnTable]
+                    legibleAttacks.append(-1)
+                    return legibleAttacks
+                
+                hand.append(-1)
+            
             return hand
         
         ##Defender
@@ -65,15 +75,6 @@ class Round:
             
             return defenses
                         
-        ##Neighbour
-        elif role == 2:
-            ranksOnTable = {card.rank for attackCard, defenseCard in self.gamestate.attackDefensePairs for card in (attackCard, defenseCard) if card}
-
-            legibleAttacks = [card for card in hand if card.rank in ranksOnTable]
-            legibleAttacks.append(-1)
-            return legibleAttacks
-            
-
         ##Bystander
         else:
             return []
@@ -110,8 +111,8 @@ class Round:
             if (len(defender.hand) == 0) and (len(self.gamestate.getDefenseCards) >= 1):
                 return True
 
-    def attackerTurn(self, attacker):
-        pm = self.possibleMoves(attacker)
+    def attackerTurn(self, attacker, iteration):
+        pm = self.possibleMoves(attacker, iteration)
         if isinstance(attacker, AgentPlayer):
             action = attacker.chooseAction(pm, attacker.getRole(), self.playerList)
 
@@ -209,7 +210,7 @@ class Round:
                 if iteration == 0:
                     attacker = self.playerList[self.attackingPlayerIndex]
                     
-                    action = self.attackerTurn(attacker)
+                    action = self.attackerTurn(attacker, iteration)
                     print(f"Player {attacker.playerID} has played the {action} to begin the attack!")
 
                     self.addAttack(action)
@@ -224,15 +225,12 @@ class Round:
                         avgHandAfter = attacker.averageHand()
                         attacker.ingameReward(avgHandBefore, avgHandAfter)
 
-                    ##Change attack
-                    attacker.setRole(2)
-
                 else:
 
                     for player in self.playerList:
                         
                         ##If player is the attacker or the bystander.
-                        if player.getRole() == 0 or player.getRole() == 2:
+                        if player.getRole() == 0:
                             
                             if len(player.hand) == 0:
                                 print(f"\nPlayer {player.playerID} has no more cards to attack with.")
@@ -242,7 +240,7 @@ class Round:
                                 print("\nThere are now the maximum attack cards in play.")
                                 break
 
-                            action = self.attackerTurn(player)
+                            action = self.attackerTurn(player, iteration)
 
                             ##For agents, calculate average hand before and after playing an action, for rewards
                             if isinstance(player, AgentPlayer):

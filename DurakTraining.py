@@ -41,7 +41,7 @@ def createPlayers(playerTypes):
             pass
         elif playerType == 2:
             ##Create AgentPlayer
-            newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], deckCount=lrParams["deckCount"])
+            newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"])
             pass
 
         playerList.append(newPlayer)
