@@ -186,9 +186,20 @@ class AgentPlayer(Player):
 
     def encodeHandLengths(self, deckCount, playerList):
 
-        normalizeHandLength = [(len(player.getHand()) / deckCount) for player in playerList]
+        agentHandLen = len(self.hand)
 
-        return normalizeHandLength
+        handLengthsEncoded = []
+
+        for player in playerList:
+            if player != self:
+
+                if len(player.getHand()) > agentHandLen:
+                    handLengthsEncoded.append(1)
+
+                else:
+                    handLengthsEncoded.append(0)
+    
+        return handLengthsEncoded
     
     def encodeRole(self, role):
 
@@ -226,11 +237,9 @@ class AgentPlayer(Player):
         state.extend(attackVector)
         state.extend(defenseVector)
 
-        talonCount = len(self.gamestate.talon) / deckCount
-        discardCount = len(self.gamestate.discardPile) / deckCount
+        talon = 1 if len(self.gamestate.talon) > 0 else 0
 
-        state.append(talonCount)
-        state.append(discardCount)
+        state.append(talon)
 
         return state
     
