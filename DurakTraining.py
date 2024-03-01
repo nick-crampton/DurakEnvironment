@@ -15,8 +15,8 @@ lrParams = {
 }
 
 gameProperties = {
-    "handCount" : 3,
-    "talonCount" : 12,
+    "handCount" : 6,
+    "talonCount" : 24,
     "rankList" : 'd'
 }
 
@@ -28,7 +28,7 @@ gameProperties = {
 trainingIterations = 5000
 playerTypes = [2, 1]
 
-def createPlayers(playerTypes):
+def createPlayers(playerTypes, qTable = None, training = True):
     playerList = []
         
     for i, playerType in enumerate(playerTypes):
@@ -42,12 +42,21 @@ def createPlayers(playerTypes):
             pass
         elif playerType == 2:
             ##Create AgentPlayer
-            newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"])
+            newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
             pass
 
         playerList.append(newPlayer)
 
     return playerList
+
+def playAgent(playerTypes, gameProperties, directory, experimentNo):
+    qTable = loadJSON(directory, experimentNo)
+    
+    createPlayers(playerTypes, qTable, False)
+
+    game = Game(playerList, gameProperties = gameProperties)
+    game.newGame()
+
 
 def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plotIntervals):
     
@@ -70,6 +79,8 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plot
         tempAgent = game.agent
         
         gameStats['totalReward'] += tempAgent.totalReward
+        game.agent.totalReward = 0
+
         print(f"\nreward accumulated in game is {tempAgent.totalReward}")
 
         if i % plotIntervals == 0 and i > 0:
@@ -80,7 +91,31 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plot
 
     return gameStats, agent
 
-def plotSurvivalRate(gameStats, interval):
+def saveJSON(qTable, directory, experimentNo):
+    
+    tableDirectory = os.path.join(directory, 'Q-Tables')
+    filepath = os.path.join(tableDirectory, f'experiment_{experimentNo}.json')
+
+    qTableSave = {str(key): value for key, value in qTable.items()}
+
+    with open(filepath, 'w') as file:
+        json.dump(qTableSave, file)
+
+def loadJSON(directory, experimentNo):
+    tableDirectory = os.path.join(directory, 'Q-Tables')
+    filepath = os.path.join(tableDirectory, f'experiment_{experimentNo}.json')
+
+    if not os.path.exists(filepath):
+        print(f"No Q-table found at {filepath}")
+        return None
+    
+    with open(filepath, 'r') as file:
+        qTableStrKeys = json.load(file)
+
+    qTable = {eval(key): value for key, value in qTableStrKeys.items()}
+    return qTable
+
+def plotSurvivalRate(gameStats, interval, experimentNo, directory):
     x = list(range(interval, len(gameStats['survivalRates']) * interval + 1, interval))
     y = gameStats['survivalRates']
 
@@ -88,8 +123,14 @@ def plotSurvivalRate(gameStats, interval):
     plt.xlabel('Number of Games')
     plt.ylabel('Survival Rate (%)')
     plt.title('Survival Rate Over Time')
+    plt.ylim(0, 100)  # Set y-axis to range from 0 to 100
+    plt.axhline(y=50, color='r', linestyle='--')  # Add a horizontal line at 50%
     plt.grid(True)
     plt.show()
+
+    graphDirectory = os.path.join(directory, 'survival graphs')
+    plt.savefig(os.path.join(graphDirectory, f"experiment {experimentNo}.png"))
+    print("Experiment graph saved.")
 
 def saveExperimentResults(experimentNo, gameStats, agent, directory):
     filepath = os.path.join(directory, f"experiment_{experimentNo}.txt")
@@ -100,20 +141,33 @@ def saveExperimentResults(experimentNo, gameStats, agent, directory):
         file.write(f"Survival Count = {gameStats['survivalCount']}\n")
         file.write(f"Durak Count = {gameStats['durakCount']}\n")
         file.write(f"Total Reward = {gameStats['totalReward']}\n\n")
-        file.write("State-Action Pairs and Q-Values:\n")
+        file.write("State-Action Pairs, their Q-Values, and the visitation tally:\n")
 
-        for key, value in agent.qTable.items():
-            file.write(f"{key}: {value}\n")
+        sortedQTable = sorted(agent.qTable.keys(), key=lambda k: agent.stateActionCounter.get(k, 0), reverse=True)
+        for key in sortedQTable:
+            value = agent.qTable[key]
+            count = agent.stateActionCounter.get(key, 0)
+            
+            file.write(f"{key}: {value}, Tally {count}\n")
+
+        '''for key, value in agent.qTable.items():
+            
+            count = agent.stateActionCounter.get(key, 0)
+            file.write(f"{key}: {value}, Tally {count}\n")'''
 
     print(f"Experiment results saved as {filepath}")
 
-experimentNo = 1
+experimentNo = '1b'
 intervals = 100
 
 playerList = createPlayers(playerTypes)
-gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
+##gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
 
 targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
-saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
-plotSurvivalRate(gameStats, intervals)
+##saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
+##plotSurvivalRate(gameStats, intervals, experimentNo, targetDirectory)
+
+##saveJSON(agent.qTable, targetDirectory, experimentNo)
+
+playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)

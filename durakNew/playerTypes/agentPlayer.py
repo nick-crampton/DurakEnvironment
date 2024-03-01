@@ -4,26 +4,27 @@ from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList 
 import numpy as np
 import random
-import json
-import os
+
 
 class AgentPlayer(Player):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon):
+    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, qTable = None, isTraining = True):
         super().__init__(hand, playerID, gamestate)
         self.learningRate = learningRate
         self.discount = discount
         self.epsilon = epsilon
 
-        self.qTable = {}
+        self.qTable = qTable if qTable is not None else {}        
+        self.stateActionCounter = {}
         
         self.episode = []
 
         self.lastAction = None
         self.lastState = None
         self.lastReward = None
-
         self.totalReward = 0
 
+        self.isTraining = isTraining
+        
     def encodeCard(self, card):
         rankLow = ['6', '7', '8']
         rankMid = ['9', '10', 'Jack']
@@ -112,7 +113,10 @@ class AgentPlayer(Player):
         return originalAction, chosenAction
 
     def updateQ(self, currentState, possibleMoves, gameCompletion = False):
-    
+        
+        if not self.isTraining:
+            return
+
         lastState = self.lastState
         lastAction = self.lastAction
         reward = self.lastReward
@@ -168,6 +172,14 @@ class AgentPlayer(Player):
 
         else:
             originalAction, qAction = self.qTableSelection(currentState, possibleMovesFlat)
+
+        stateActionPair = (currentState, qAction)
+
+        if stateActionPair in self.stateActionCounter:
+            self.stateActionCounter[stateActionPair] += 1
+        
+        else:
+            self.stateActionCounter[stateActionPair] = 1
 
         self.lastState = currentState
         self.lastAction = qAction
