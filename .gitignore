@@ -4,3 +4,13 @@ durakNew/__pycache__/game.cpython-38.pyc
 durakNew/__pycache__/game.cpython-38.pyc
 durakNew/playerTypes/__pycache__/agentPlayer.cpython-38.pyc
 durakNew/__pycache__/game.cpython-38.pyc
+durakNew/__pycache__/deck.cpython-311.pyc
+durakNew/__pycache__/game.cpython-311.pyc
+durakNew/__pycache__/gamestate.cpython-311.pyc
+durakNew/__pycache__/player.cpython-311.pyc
+durakNew/__pycache__/round.cpython-311.pyc
+durakNew/playerTypes/__pycache__/agentPlayer.cpython-311.pyc
+durakNew/playerTypes/__pycache__/humanPlayer.cpython-311.pyc
+durakNew/playerTypes/__pycache__/randomBot.cpython-311.pyc
+durakNew/utils/__pycache__/rankList.cpython-311.pyc
+durakNew/utils/__pycache__/roleDict.cpython-311.pyc

@@ -238,18 +238,13 @@ class AgentPlayer(Player):
         return attackVector, defenseVector
 
     def getStateRepresentation(self, playerList, role):
-        state = []
-        state.extend(self.encodeHand())
-        state.extend(self.encodeHandLengths(playerList))
-        state.extend(self.encodeRole(role))
-        
-        attackVector, defenseVector = self.encodeTableCards()
-        state.extend(attackVector)
-        state.extend(defenseVector)
-
-        talon = 1 if len(self.gamestate.talon) > 0 else 0
-
-        state.append(talon)
+        state = {
+            "hand": self.encodeHand(),
+            "hand_lengths": self.encodeHandLengths(playerList),
+            "role": self.encodeRole(role),
+            "table_cards": self.encodeTableCards(),
+            "talon": [1 if len(self.gamestate.talon) > 0 else 0]
+        }
 
         return state
     

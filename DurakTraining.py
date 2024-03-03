@@ -15,8 +15,8 @@ lrParams = {
 }
 
 gameProperties = {
-    "handCount" : 6,
-    "talonCount" : 24,
+    "handCount" : 3,
+    "talonCount" : 12,
     "rankList" : 'd'
 }
 
@@ -25,7 +25,7 @@ gameProperties = {
 ## Bot      - 1
 ## Agent    - 2
 
-trainingIterations = 5000
+trainingIterations = 10000
 playerTypes = [2, 1]
 
 def createPlayers(playerTypes, qTable = None, training = True):
@@ -126,10 +126,11 @@ def plotSurvivalRate(gameStats, interval, experimentNo, directory):
     plt.ylim(0, 100)  # Set y-axis to range from 0 to 100
     plt.axhline(y=50, color='r', linestyle='--')  # Add a horizontal line at 50%
     plt.grid(True)
-    plt.show()
+    
 
     graphDirectory = os.path.join(directory, 'survival graphs')
     plt.savefig(os.path.join(graphDirectory, f"experiment {experimentNo}.png"))
+    plt.show()
     print("Experiment graph saved.")
 
 def saveExperimentResults(experimentNo, gameStats, agent, directory):
@@ -150,24 +151,19 @@ def saveExperimentResults(experimentNo, gameStats, agent, directory):
             
             file.write(f"{key}: {value}, Tally {count}\n")
 
-        '''for key, value in agent.qTable.items():
-            
-            count = agent.stateActionCounter.get(key, 0)
-            file.write(f"{key}: {value}, Tally {count}\n")'''
-
     print(f"Experiment results saved as {filepath}")
 
-experimentNo = '1b'
+experimentNo = '1a'
 intervals = 100
 
 playerList = createPlayers(playerTypes)
-##gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
+gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
 
 targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
-##saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
-##plotSurvivalRate(gameStats, intervals, experimentNo, targetDirectory)
+saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
+plotSurvivalRate(gameStats, intervals, experimentNo, targetDirectory)
 
-##saveJSON(agent.qTable, targetDirectory, experimentNo)
+saveJSON(agent.qTable, targetDirectory, experimentNo)
 
-playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)
+##playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)
