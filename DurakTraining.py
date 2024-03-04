@@ -6,27 +6,13 @@ import json
 import os
 import matplotlib.pyplot as plt
 
-##RL Agent parameters
-lrParams = {
-    "learningRate": 0.1,
-    "discount": 0.99,
-    "epsilon": 0.1,
-    "deckCount" : 36
-}
 
-gameProperties = {
-    "handCount" : 3,
-    "talonCount" : 12,
-    "rankList" : 'd'
-}
 
 ##Pass array of players with their respective types:
 ## Human    - 0
 ## Bot      - 1
 ## Agent    - 2
 
-trainingIterations = 5000
-playerTypes = [2, 1]
 
 def createPlayers(playerTypes, qTable = None, training = True):
     playerList = []
@@ -52,20 +38,24 @@ def createPlayers(playerTypes, qTable = None, training = True):
 def playAgent(playerTypes, gameProperties, directory, experimentNo):
     qTable = loadJSON(directory, experimentNo)
     
-    createPlayers(playerTypes, qTable, False)
+    playerList = createPlayers(playerTypes, qTable, False)
 
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
 
-
-def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plotIntervals):
+def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plotIntervals, metadata = None):
     
-    gameStats = {
+    if metadata is None:
+        gameStats = {
+        'trainingCount' : 0,
         'survivalCount': 0,
         'durakCount' : 0,
         'totalReward': 0,
         'survivalRates': [] 
-    }
+        }
+
+    else:
+        gameStats = metadata
 
     for i in range(trainingIterations):
         print(f"\nGame {i+1}")
@@ -73,8 +63,10 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plot
         game = Game(playerList, lrParams, gameProperties)
         game.newGame()
 
+        gameStats['trainingCount'] += 1
         gameStats['survivalCount'] += game.survivalCount
         gameStats['durakCount'] += game.durakCount
+        
         
         tempAgent = game.agent
         
@@ -84,12 +76,32 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plot
         print(f"\nreward accumulated in game is {tempAgent.totalReward}")
 
         if i % plotIntervals == 0 and i > 0:
-            survivalRate = (gameStats['survivalCount'] / i) * 100
+            survivalRate = (gameStats['survivalCount'] / gameStats['trainingCount']) * 100
             gameStats['survivalRates'].append(survivalRate)
 
     agent = game.agent
 
     return gameStats, agent
+
+def saveMetadata(metadata, directory, experimentNo):
+    metadataDirectory = os.path.join(directory, 'Metadata')
+    filepath = os.path.join(metadataDirectory, f'metadata_{experimentNo}.json')
+
+    with open(filepath, 'w') as file:
+        json.dump(metadata, file)
+
+def loadMetadata(directory, experimentNo):
+    metadataDirectory = os.path.join(directory, 'Metadata')
+    filepath = os.path.join(metadataDirectory, f'metadata_{experimentNo}.json')
+
+    if not os.path.exists(filepath):
+        print(f"No metadata found at {filepath}")
+        return None
+    
+    with open(filepath, 'r') as file:
+        metadata = json.load(file)
+
+    return metadata
 
 def saveJSON(qTable, directory, experimentNo):
     
@@ -152,17 +164,42 @@ def saveExperimentResults(experimentNo, gameStats, agent, directory):
 
     print(f"Experiment results saved as {filepath}")
 
-experimentNo = '1a'
+def agentTraining(directory, playerTypes, experimentNo, lrParams, gameProperties, intervals, trainingIterations, qTable = False):
+    
+    if qTable:
+        qTable = loadJSON(targetDirectory, experimentNo)
+        metadata = loadMetadata(targetDirectory, experimentNo)
+        playerList = createPlayers(playerTypes, qTable)
+        gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, metadata)
+
+    else:
+        playerList = createPlayers(playerTypes)
+        gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
+
+    saveExperimentResults(experimentNo, gameStats, agent, directory)
+    plotSurvivalRate(gameStats, intervals, experimentNo, directory)
+    saveJSON(agent.qTable, targetDirectory, experimentNo)
+    saveMetadata(gameStats, directory, experimentNo)
+
+trainingIterations = 5000
+playerTypes = [2, 1]
+experimentNo = '1'
 intervals = 100
-
-playerList = createPlayers(playerTypes)
-gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
-
 targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
-saveExperimentResults(experimentNo, gameStats, agent, targetDirectory)
-plotSurvivalRate(gameStats, intervals, experimentNo, targetDirectory)
+##RL Agent parameters
+lrParams = {
+    "learningRate": 0.1,
+    "discount": 0.99,
+    "epsilon": 0.1,
+}
 
-saveJSON(agent.qTable, targetDirectory, experimentNo)
+gameProperties = {
+    "handCount" : 3,
+    "talonCount" : 12,
+    "rankList" : 'd'
+}
 
-##playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)
+##agentTraining(targetDirectory, playerTypes, experimentNo, lrParams, gameProperties, intervals, trainingIterations, True)
+
+playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)

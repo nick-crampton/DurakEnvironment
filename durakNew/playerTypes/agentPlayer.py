@@ -5,7 +5,6 @@ from durakNew.utils.suitList import suitList
 import numpy as np
 import random
 
-
 class AgentPlayer(Player):
     def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, qTable = None, isTraining = True):
         super().__init__(hand, playerID, gamestate)
@@ -138,7 +137,6 @@ class AgentPlayer(Player):
 
     def chooseAction(self, possibleMoves, role, playerList):
         currentState = tuple((key, value) for key, value in self.getStateRepresentation(playerList, role).items())
-        print(currentState)
 
         possibleMovesFlat = []
         ##Flatten possibleMoves if agent is defending
@@ -239,7 +237,7 @@ class AgentPlayer(Player):
         return tuple(attackVector), tuple(defenseVector)
 
     def encodeUndefendedCards(self):
-        undefendedCards = self.gamestate.getUndefended()
+        undefendedCards = self.gamestate.undefendedCards()
         undefendedCardsEnc = []
 
         for card in undefendedCards:
