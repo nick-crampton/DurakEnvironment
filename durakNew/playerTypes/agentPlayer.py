@@ -137,7 +137,9 @@ class AgentPlayer(Player):
         self.qTable[(lastState, lastAction)] = currentQ + self.learningRate * (reward + self.discount * maxNextQ - currentQ)
 
     def chooseAction(self, possibleMoves, role, playerList):
-        currentState = tuple(self.getStateRepresentation(playerList, role))
+        currentState = tuple((key, value) for key, value in self.getStateRepresentation(playerList, role).items())
+        print(currentState)
+
 
         possibleMovesFlat = []
         ##Flatten possibleMoves if agent is defending
@@ -192,7 +194,7 @@ class AgentPlayer(Player):
             encodedRank = self.encodeCard(card)
             encodedHand[encodedRank] += 1
 
-        return encodedHand
+        return tuple(encodedHand)
 
     def encodeHandLengths(self, playerList):
 
@@ -209,13 +211,13 @@ class AgentPlayer(Player):
                 else:
                     handLengthsEncoded.append(0)
     
-        return handLengthsEncoded
+        return tuple(handLengthsEncoded)
     
     def encodeRole(self, role):
 
         roleEncoding = [0, 0]
         roleEncoding[role] = 1
-        return roleEncoding
+        return tuple(roleEncoding)
 
     def encodeTableCards(self):
 
@@ -235,7 +237,7 @@ class AgentPlayer(Player):
 
             defenseVector[i] = encodeDefense
 
-        return attackVector, defenseVector
+        return tuple(attackVector), tuple(defenseVector)
 
     def getStateRepresentation(self, playerList, role):
         state = {
@@ -243,7 +245,7 @@ class AgentPlayer(Player):
             "hand_lengths": self.encodeHandLengths(playerList),
             "role": self.encodeRole(role),
             "table_cards": self.encodeTableCards(),
-            "talon": [1 if len(self.gamestate.talon) > 0 else 0]
+            "talon": 1 if len(self.gamestate.talon) > 0 else 0
         }
 
         return state

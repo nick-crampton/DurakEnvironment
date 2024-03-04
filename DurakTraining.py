@@ -25,7 +25,7 @@ gameProperties = {
 ## Bot      - 1
 ## Agent    - 2
 
-trainingIterations = 10000
+trainingIterations = 5000
 playerTypes = [2, 1]
 
 def createPlayers(playerTypes, qTable = None, training = True):
