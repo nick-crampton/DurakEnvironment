@@ -181,7 +181,7 @@ def agentTraining(directory, playerTypes, experimentNo, lrParams, gameProperties
     saveJSON(agent.qTable, targetDirectory, experimentNo)
     saveMetadata(gameStats, directory, experimentNo)
 
-trainingIterations = 5000
+trainingIterations = 10000
 playerTypes = [2, 1]
 experimentNo = '1'
 intervals = 100
