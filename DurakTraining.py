@@ -127,7 +127,6 @@ def plotSurvivalRate(gameStats, interval, experimentNo, directory):
     plt.axhline(y=50, color='r', linestyle='--')  # Add a horizontal line at 50%
     plt.grid(True)
     
-
     graphDirectory = os.path.join(directory, 'survival graphs')
     plt.savefig(os.path.join(graphDirectory, f"experiment {experimentNo}.png"))
     plt.show()

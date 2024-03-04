@@ -140,7 +140,6 @@ class AgentPlayer(Player):
         currentState = tuple((key, value) for key, value in self.getStateRepresentation(playerList, role).items())
         print(currentState)
 
-
         possibleMovesFlat = []
         ##Flatten possibleMoves if agent is defending
         if role == 1:
@@ -239,12 +238,24 @@ class AgentPlayer(Player):
 
         return tuple(attackVector), tuple(defenseVector)
 
+    def encodeUndefendedCards(self):
+        undefendedCards = self.gamestate.getUndefended()
+        undefendedCardsEnc = []
+
+        for card in undefendedCards:
+
+            encodeCard = self.encodeCard(card)
+            undefendedCardsEnc.append(encodeCard)
+
+        return tuple(undefendedCardsEnc)
+
+
     def getStateRepresentation(self, playerList, role):
         state = {
             "hand": self.encodeHand(),
-            "hand_lengths": self.encodeHandLengths(playerList),
+            "hand lengths": self.encodeHandLengths(playerList),
             "role": self.encodeRole(role),
-            "table_cards": self.encodeTableCards(),
+            "undefended cards": self.encodeUndefendedCards(),
             "talon": 1 if len(self.gamestate.talon) > 0 else 0
         }
 
