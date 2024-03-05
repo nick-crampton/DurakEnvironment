@@ -2,17 +2,16 @@ from durakNew.game import Game
 from durakNew.playerTypes.agentPlayer import AgentPlayer
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer
+from durakNew.playerTypes.lowestValueBot import LowestValueBot
 import json
 import os
 import matplotlib.pyplot as plt
 
-
-
 ##Pass array of players with their respective types:
 ## Human    - 0
-## Bot      - 1
+## RandomBot      - 1
 ## Agent    - 2
-
+## LowestValueBot - 3
 
 def createPlayers(playerTypes, qTable = None, training = True):
     playerList = []
@@ -23,13 +22,17 @@ def createPlayers(playerTypes, qTable = None, training = True):
             newPlayer = HumanPlayer([], i, None)
             pass
         elif playerType == 1:
-            ##Create BotPlayer
+            ##Create RandomBot
             newPlayer = RandomBot([], i,  None)
             pass
         elif playerType == 2:
             ##Create AgentPlayer
             newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
             pass
+
+        elif playerType == 3:
+            ##Create LowestValueBot
+            newPlayer = LowestValueBot([], i, None)
 
         playerList.append(newPlayer)
 
@@ -144,7 +147,7 @@ def plotSurvivalRate(gameStats, interval, experimentNo, directory):
     plt.show()
     print("Experiment graph saved.")
 
-def saveExperimentResults(experimentNo, gameStats, agent, directory):
+def saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, agent, directory):
     filepath = os.path.join(directory, f"experiment_{experimentNo}.txt")
     os.makedirs(directory, exist_ok=True)
 
@@ -152,8 +155,19 @@ def saveExperimentResults(experimentNo, gameStats, agent, directory):
         file.write(f"Experiment: {experimentNo}\n")
         file.write(f"Survival Count = {gameStats['survivalCount']}\n")
         file.write(f"Durak Count = {gameStats['durakCount']}\n")
-        file.write(f"Total Reward = {gameStats['totalReward']}\n\n")
-        file.write("State-Action Pairs, their Q-Values, and the visitation tally:\n")
+        file.write(f"Total Reward = {gameStats['totalReward']}\n")
+
+        file.write(f"\nReinforcement Learning Parameters\n")
+        for key, value in lrParams.items():
+            file.write(f"{key}: {value}\n")
+            
+        file.write('\nGame Properties\n')
+
+        for key, value in gameProperties.items():
+            file.write(f"{key}: {value}\n")
+            
+
+        file.write("\nState-Action Pairs, their Q-Values, and the visitation tally:\n")
 
         sortedQTable = sorted(agent.qTable.keys(), key=lambda k: agent.stateActionCounter.get(k, 0), reverse=True)
         for key in sortedQTable:
@@ -176,14 +190,14 @@ def agentTraining(directory, playerTypes, experimentNo, lrParams, gameProperties
         playerList = createPlayers(playerTypes)
         gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
 
-    saveExperimentResults(experimentNo, gameStats, agent, directory)
+    saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, agent, directory)
     plotSurvivalRate(gameStats, intervals, experimentNo, directory)
     saveJSON(agent.qTable, targetDirectory, experimentNo)
     saveMetadata(gameStats, directory, experimentNo)
 
 trainingIterations = 10000
-playerTypes = [2, 1]
-experimentNo = '1'
+playerTypes = [2, 3]
+experimentNo = '4'
 intervals = 100
 targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
@@ -200,6 +214,6 @@ gameProperties = {
     "rankList" : 'd'
 }
 
-##agentTraining(targetDirectory, playerTypes, experimentNo, lrParams, gameProperties, intervals, trainingIterations, True)
+agentTraining(targetDirectory, playerTypes, experimentNo, lrParams, gameProperties, intervals, trainingIterations, True)
 
-playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)
+##playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)

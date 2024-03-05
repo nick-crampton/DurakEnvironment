@@ -33,4 +33,14 @@ class LowestValueBot(Player):
                 return action
 
         else:
-            sortAttacks = sorted(possibleMoves)
+            ##Get card actions:
+            cardActions = [action for action in possibleMoves if isinstance(action, Card)]
+            
+            if len(cardActions) > 0:
+                sortAttacks = sorted(cardActions, key = lambda card: (card.getCardPower()))
+                action = sortAttacks[0]
+            
+            else:
+                action = -1
+                
+            return action

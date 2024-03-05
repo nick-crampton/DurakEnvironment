@@ -192,6 +192,16 @@ class AgentPlayer(Player):
             encodedHand[encodedRank] += 1
 
         return tuple(encodedHand)
+    
+    def encodeHandBinary(self):
+        encodedHand = [0] * 6
+        
+        for card in self.hand:
+            encodedRank = self.encodeCard(card)
+            if encodedHand[encodedRank] != 1:
+                encodedHand[encodedRank] = 1
+
+        return tuple(encodedHand)
 
     def encodeHandLengths(self, playerList):
 
@@ -250,10 +260,10 @@ class AgentPlayer(Player):
 
     def getStateRepresentation(self, playerList, role):
         state = {
-            "hand": self.encodeHand(),
+            "hand": self.encodeHandBinary(),
             "hand lengths": self.encodeHandLengths(playerList),
             "role": self.encodeRole(role),
-            "undefended cards": self.encodeUndefendedCards(),
+            "undefended count": len(self.gamestate.undefendedCards()),
             "talon": 1 if len(self.gamestate.talon) > 0 else 0
         }
 
