@@ -7,32 +7,32 @@ import json
 import os
 import matplotlib.pyplot as plt
 
-##Pass array of players with their respective types:
-## Human    - 0
-## RandomBot      - 1
-## Agent    - 2
-## LowestValueBot - 3
+
 
 def createPlayers(playerTypes, qTable = None, training = True):
     playerList = []
         
     for i, playerType in enumerate(playerTypes):
+        
         if playerType == 0:
             ##Create HumanPlayer
             newPlayer = HumanPlayer([], i, None)
             pass
+        
         elif playerType == 1:
             ##Create RandomBot
             newPlayer = RandomBot([], i,  None)
             pass
+        
         elif playerType == 2:
+            ##Create LowestValueBot
+            newPlayer = LowestValueBot([], i, None)
+            pass
+        
+        elif playerType == 3:
             ##Create AgentPlayer
             newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
             pass
-
-        elif playerType == 3:
-            ##Create LowestValueBot
-            newPlayer = LowestValueBot([], i, None)
 
         playerList.append(newPlayer)
 
@@ -46,19 +46,37 @@ def playAgent(playerTypes, gameProperties, directory, experimentNo):
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
 
-def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plotIntervals, metadata = None):
+def runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, metadataTotal = None, metadataPhase = None):
     
-    if metadata is None:
-        gameStats = {
+    if metadataTotal is None:
+        gameStatsTotal = {
         'trainingCount' : 0,
         'survivalCount': 0,
         'durakCount' : 0,
         'totalReward': 0,
-        'survivalRates': [] 
+        'averageReward': [],
+        'averageRewardInterval': [],
+        'survivalRates': [],
+        'survivalRatesInterval' : []
+        }
+
+        gameStatsPhase = {
+        'trainingCount' : 0,
+        'survivalCount': 0,
+        'durakCount' : 0,
+        'totalReward': 0,
+        'averageReward': [],
+        'averageRewardInterval': [],
+        'survivalRates': [],
+        'survivalRatesInterval' : []
         }
 
     else:
-        gameStats = metadata
+        gameStatsTotal = metadataTotal
+        gameStatsPhase = metadataPhase
+
+    survivalCountInterval = 0
+    totalRewardInterval = 0
 
     for i in range(trainingIterations):
         print(f"\nGame {i+1}")
@@ -66,29 +84,68 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, plot
         game = Game(playerList, lrParams, gameProperties)
         game.newGame()
 
-        gameStats['trainingCount'] += 1
-        gameStats['survivalCount'] += game.survivalCount
-        gameStats['durakCount'] += game.durakCount
+        ##Add gameStats for an overall graph
+        gameStatsTotal['trainingCount'] += 1
+        gameStatsTotal['survivalCount'] += game.survivalCount
+        gameStatsTotal['durakCount'] += game.durakCount
+
+        ##Add gameStats for a graph for just this stage of training
+        gameStatsPhase['trainingCount'] += 1
+        gameStatsPhase['survivalCount'] += game.survivalCount
+        gameStatsPhase['durakCount'] += game.durakCount
         
-        
+        survivalCountInterval += game.survivalCount
+
         tempAgent = game.agent
         
-        gameStats['totalReward'] += tempAgent.totalReward
+        gameStatsTotal['totalReward'] += tempAgent.totalReward
+        gameStatsPhase['totalReward'] += tempAgent.totalReward
+
+        totalRewardInterval += tempAgent.totalReward
+
         game.agent.totalReward = 0
 
-        print(f"\nreward accumulated in game is {tempAgent.totalReward}")
+        print(f"\nReward accumulated in game is {tempAgent.totalReward}")
 
-        if i % plotIntervals == 0 and i > 0:
-            survivalRate = (gameStats['survivalCount'] / gameStats['trainingCount']) * 100
-            gameStats['survivalRates'].append(survivalRate)
+        if i % intervals == 0 and i > 0:
+            survivalRateTotal = (gameStatsTotal['survivalCount'] / gameStatsTotal['trainingCount']) * 100
+            gameStatsTotal['survivalRates'].append(survivalRateTotal)
+
+            survivalRatePhase = (gameStatsPhase['survivalCount'] / gameStatsPhase['trainingCount']) * 100
+            gameStatsPhase['survivalRates'].append(survivalRatePhase)
+
+            survivalRateInterval = (survivalCountInterval / intervals) * 100
+            gameStatsTotal['survivalRatesInterval'].append(survivalRateInterval)
+            gameStatsPhase['survivalRatesInterval'].append(survivalRateInterval)
+
+            survivalCountInterval = 0
+
+            averageRewardTotal = (gameStatsTotal['TotalReward'] / gameStatsTotal['trainingCount'])
+            gameStatsTotal['averageReward'].append(averageRewardTotal)
+
+            averageRewardPhase = (gameStatsPhase['TotalReward'] / gameStatsPhase['trainingCount'])
+            gameStatsPhase['averageReward'].append(averageRewardPhase)
+
+            averageRewardInterval = (totalRewardInterval / intervals)
+            
+            gameStatsTotal['averageRewardIntervals'].append(averageRewardInterval)
+            gameStatsPhase['averageRewardIntervals'].append(averageRewardInterval)
 
     agent = game.agent
 
-    return gameStats, agent
+    return gameStatsTotal, gameStatsPhase, agent
 
-def saveMetadata(metadata, directory, experimentNo):
+def saveMetadata(metadata, directory, experiment = None, phase = None):
     metadataDirectory = os.path.join(directory, 'Metadata')
-    filepath = os.path.join(metadataDirectory, f'metadata_{experimentNo}.json')
+    os.makedirs(metadataDirectory, exist_ok=True)
+
+    if phase is None:
+        filename = f"Metadata_experiment_{experiment}"
+
+    elif experiment is None:
+        filename = f"Metadata_phase_{phase}"
+
+    filepath = os.path.join(metadataDirectory, filename)
 
     with open(filepath, 'w') as file:
         json.dump(metadata, file)
@@ -107,8 +164,9 @@ def loadMetadata(directory, experimentNo):
     return metadata
 
 def saveJSON(qTable, directory, experimentNo):
-    
     tableDirectory = os.path.join(directory, 'Q-Tables')
+    os.makedirs(tableDirectory, exist_ok=True)
+
     filepath = os.path.join(tableDirectory, f'experiment_{experimentNo}.json')
 
     qTableSave = {str(key): value for key, value in qTable.items()}
@@ -130,22 +188,77 @@ def loadJSON(directory, experimentNo):
     qTable = {eval(key): value for key, value in qTableStrKeys.items()}
     return qTable
 
-def plotSurvivalRate(gameStats, interval, experimentNo, directory):
-    x = list(range(interval, len(gameStats['survivalRates']) * interval + 1, interval))
-    y = gameStats['survivalRates']
+def plotSurvivalRate(gameStats, interval, experiment, directory, phase = None):
 
-    plt.plot(x, y, marker='o')
+    xTotal = list(range(interval, len(gameStats['survivalRates']) * interval + 1, interval))
+    yTotal = gameStats['survivalRates']
+
+    xIntervals = list(range(interval), len(gameStats['survivalRatesInterval'] * interval + 1, interval))
+    yIntervals = gameStats['survivalRatesInterval']
+
+    plt.plot(xTotal, yTotal, marker='o', color = 'b', label = "Overall Survival Rate")
+    plt.plot(xIntervals, yIntervals, marker = 'o', color = 'r', label = 'Interval Survival Rate')
+    
     plt.xlabel('Number of Games')
     plt.ylabel('Survival Rate (%)')
-    plt.title('Survival Rate Over Time')
-    plt.ylim(0, 100)  # Set y-axis to range from 0 to 100
-    plt.axhline(y=50, color='r', linestyle='--')  # Add a horizontal line at 50%
+    
+    if phase is None:
+        plt.title('Survival Rate Over Total Training - Experiment {experiment}')
+        filename = f"Survival_experiment_{experiment}.png"
+
+    else:
+        plt.title(f'Survival Rate Over Phase {phase} - Experiment {experiment}')
+        filename = f"Survival_experiment_{experiment}_phase_{phase}.png"
+    
+    plt.ylim(0, 100)
+    plt.axhline(y=50, color='g', linestyle='--')  
     plt.grid(True)
+    plt.legend()
     
     graphDirectory = os.path.join(directory, 'survival graphs')
-    plt.savefig(os.path.join(graphDirectory, f"experiment {experimentNo}.png"))
-    plt.show()
-    print("Experiment graph saved.")
+    os.makedirs(graphDirectory, exist_ok=True)
+
+    filepath = os.path.join(graphDirectory, filename)
+
+    plt.savefig(filepath)
+    print("Survival graph saved.")
+    plt.close()
+
+def plotAverageRewards(gameStats, interval, experiment, directory, phase = None):
+
+    xTotal = list(range(interval, len(gameStats['averageReward']) * interval + 1, interval))
+    yTotal = gameStats['averageReward']
+
+    xIntervals = list(range(interval), len(gameStats['averageRewardInterval'] * interval + 1, interval))
+    yIntervals = gameStats['averageRewardInterval']
+
+    plt.plot(xTotal, yTotal, marker='o', color = 'b', label = "Overall Average Reward")
+    plt.plot(xIntervals, yIntervals, marker = 'o', color = 'r', label = 'Interval Average Reward')
+
+    plt.xlabel("Number of Games")
+    plt.ylabel('Average Reward')
+
+    if phase is None:
+        plt.title('Average Reward Over Total Training - Experiment {experiment}')
+        filename = f"Average_reward_experiment_{experiment}.png"
+
+    else:
+        plt.title(f'Average Reward Over Phase {phase} - Experiment {experiment}')
+        filename = f"Average_reward_experiment_{experiment}_phase_{phase}.png"
+
+    plt.ylim(-50, 50)
+    plt.axhline(y = 0, color = 'g', linestyle = '--')
+    plt.grid = True
+    plt.legend()
+
+    graphDirectory = os.path.join(directory, 'reward graphs')
+    os.makedirs(graphDirectory, exist_ok=True)
+
+    filepath = os.path.join(graphDirectory, filename)
+
+    plt.savefig(filepath)
+    print("Reward graph saved.")
+    plt.close()
 
 def saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, agent, directory):
     filepath = os.path.join(directory, f"experiment_{experimentNo}.txt")
@@ -178,28 +291,107 @@ def saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, age
 
     print(f"Experiment results saved as {filepath}")
 
-def agentTraining(directory, playerTypes, experimentNo, lrParams, gameProperties, intervals, trainingIterations, qTable = False):
+def writeFile(directory, filename, gameStats, lrParams, gameProperties, agent):
+    logDirectory = os.path.join(directory, 'logs')
+    os.makedirs(logDirectory, exist_ok=True)
+
+    filepath = os.path.join(logDirectory, filename)
+
+    with open(filepath, "w") as file:
+        file.write(f"{filename}\n")
+        file.write(f"Survival Count = {gameStats['survivalCount']}\n")
+        file.write(f"Durak Count = {gameStats['durakCount']}\n")
+        file.write(f"Total Reward = {gameStats['totalReward']}\n")
+        file.write(f"Average Reward = {gameStats['averageReward']}\n")
+
+        file.write(f"\nReinforcement Learning Parameters\n")
+        for key, value in lrParams.items():
+            file.write(f"{key}: {value}\n")
+            
+        file.write('\nGame Properties\n')
+
+        for key, value in gameProperties.items():
+            file.write(f"{key}: {value}\n")
+            
+        file.write("\nState-Action Pairs, their Q-Values, and the visitation tally:\n")
+
+        sortedQTable = sorted(agent.qTable.keys(), key=lambda k: agent.stateActionCounter.get(k, 0), reverse=True)
+        for key in sortedQTable:
+            value = agent.qTable[key]
+            count = agent.stateActionCounter.get(key, 0)
+            
+            file.write(f"{key}: {value}, Tally {count}\n")
+
+    print(f"Experiment results saved as {filename}")
+
+def saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory):
+    ##Specify folder, create it if doesn't exist
+    experimentFolder = f"experiment_{experiment}"
+    folderPath = os.path.join(directory, experimentFolder)
+    os.makedirs(folderPath, exist_ok = True)
+
+    ##Save the log files of the phases and the entire training.
+    filenameTotal = f"experiment_{experiment}.txt"
+    filenamePhase = f"phase_{phase}.txt"
+
+    writeFile(folderPath, filenameTotal, gameStatsTotal, lrParams, gameProperties, agent)
+    writeFile(folderPath, filenamePhase, gameStatsPhase, lrParams, gameProperties, agent)
+
+    ##Plot the survival rates for both the phase and total training
+    plotSurvivalRate(gameStatsTotal, intervals, experiment, folderPath)
+    plotSurvivalRate(gameStatsPhase, intervals, experiment, folderPath, phase)
+
+    ##Plot the average reward over time
+    plotAverageRewards(gameStatsTotal, intervals, experiment, folderPath)
+    plotAverageRewards(gameStatsPhase, intervals, experiment, folderPath, phase)
     
-    if qTable:
-        qTable = loadJSON(targetDirectory, experimentNo)
-        metadata = loadMetadata(targetDirectory, experimentNo)
+    ##Save the Q-Table, and the Metadata
+    saveJSON(agent.qTable, folderPath, experiment)
+    saveMetadata(gameStatsTotal, folderPath, experiment = experiment)
+    saveMetadata(gameStatsPhase, folderPath, phase = phase)
+
+def determinePlayerTypes(phase):
+    ##Pass array of players with their respective types:
+    ## Human            - 0
+    ## RandomBot        - 1
+    ## LowestValueBot   - 2
+    ## Agent            - 3
+
+    if phase is "A":
+        playerTypes = [3, 1]
+
+    elif phase is "B":
+        playerTypes = [3, 2]
+
+    return playerTypes
+
+def agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations):
+    
+    ##Results are stored in experiments folder
+    directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
+
+    ##Get the playerTypes given the phase of training we are in
+    playerTypes = determinePlayerTypes(phase)
+
+    ##Loads the qTable of the agent, if it exists
+    qTable = loadJSON(directory, experiment)
+
+    if qTable is not None:
+        totalMetadata = loadMetadata(targetDirectory, experimentName)
+        phaseMetadata = loadMetadata(targetDirectory, phaseName)
         playerList = createPlayers(playerTypes, qTable)
-        gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, metadata)
+        gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
 
     else:
         playerList = createPlayers(playerTypes)
-        gameStats, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
+        gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
 
-    saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, agent, directory)
-    plotSurvivalRate(gameStats, intervals, experimentNo, directory)
-    saveJSON(agent.qTable, targetDirectory, experimentNo)
-    saveMetadata(gameStats, directory, experimentNo)
+    saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory)
 
+experiment = '1'
+phase = 'A'
+intervals = 1000
 trainingIterations = 10000
-playerTypes = [2, 3]
-experimentNo = '4'
-intervals = 100
-targetDirectory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
 ##RL Agent parameters
 lrParams = {
@@ -214,6 +406,10 @@ gameProperties = {
     "rankList" : 'd'
 }
 
-agentTraining(targetDirectory, playerTypes, experimentNo, lrParams, gameProperties, intervals, trainingIterations, True)
+##Phases:
+## A - RandomBot Training
+## B - LowestValueBot Training
+## C - 3 Player Matches
 
+agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
 ##playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)
