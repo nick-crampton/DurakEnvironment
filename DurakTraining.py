@@ -120,16 +120,16 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
 
             survivalCountInterval = 0
 
-            averageRewardTotal = (gameStatsTotal['TotalReward'] / gameStatsTotal['trainingCount'])
+            averageRewardTotal = (gameStatsTotal['totalReward'] / gameStatsTotal['trainingCount'])
             gameStatsTotal['averageReward'].append(averageRewardTotal)
 
-            averageRewardPhase = (gameStatsPhase['TotalReward'] / gameStatsPhase['trainingCount'])
+            averageRewardPhase = (gameStatsPhase['totalReward'] / gameStatsPhase['trainingCount'])
             gameStatsPhase['averageReward'].append(averageRewardPhase)
 
             averageRewardInterval = (totalRewardInterval / intervals)
             
-            gameStatsTotal['averageRewardIntervals'].append(averageRewardInterval)
-            gameStatsPhase['averageRewardIntervals'].append(averageRewardInterval)
+            gameStatsTotal['averageRewardInterval'].append(averageRewardInterval)
+            gameStatsPhase['averageRewardInterval'].append(averageRewardInterval)
 
     agent = game.agent
 
@@ -193,7 +193,7 @@ def plotSurvivalRate(gameStats, interval, experiment, directory, phase = None):
     xTotal = list(range(interval, len(gameStats['survivalRates']) * interval + 1, interval))
     yTotal = gameStats['survivalRates']
 
-    xIntervals = list(range(interval), len(gameStats['survivalRatesInterval'] * interval + 1, interval))
+    xIntervals = list(range(interval, len(gameStats['survivalRatesInterval']) * interval + 1, interval))
     yIntervals = gameStats['survivalRatesInterval']
 
     plt.plot(xTotal, yTotal, marker='o', color = 'b', label = "Overall Survival Rate")
@@ -229,7 +229,7 @@ def plotAverageRewards(gameStats, interval, experiment, directory, phase = None)
     xTotal = list(range(interval, len(gameStats['averageReward']) * interval + 1, interval))
     yTotal = gameStats['averageReward']
 
-    xIntervals = list(range(interval), len(gameStats['averageRewardInterval'] * interval + 1, interval))
+    xIntervals = list(range(interval, len(gameStats['averageRewardInterval']) * interval + 1, interval))
     yIntervals = gameStats['averageRewardInterval']
 
     plt.plot(xTotal, yTotal, marker='o', color = 'b', label = "Overall Average Reward")
@@ -302,7 +302,6 @@ def writeFile(directory, filename, gameStats, lrParams, gameProperties, agent):
         file.write(f"Survival Count = {gameStats['survivalCount']}\n")
         file.write(f"Durak Count = {gameStats['durakCount']}\n")
         file.write(f"Total Reward = {gameStats['totalReward']}\n")
-        file.write(f"Average Reward = {gameStats['averageReward']}\n")
 
         file.write(f"\nReinforcement Learning Parameters\n")
         for key, value in lrParams.items():
@@ -377,8 +376,8 @@ def agentTraining(experiment, phase, lrParams, gameProperties, intervals, traini
     qTable = loadJSON(directory, experiment)
 
     if qTable is not None:
-        totalMetadata = loadMetadata(targetDirectory, experimentName)
-        phaseMetadata = loadMetadata(targetDirectory, phaseName)
+        totalMetadata = loadMetadata(directory, experiment)
+        phaseMetadata = loadMetadata(directory, phase)
         playerList = createPlayers(playerTypes, qTable)
         gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
 
@@ -390,8 +389,8 @@ def agentTraining(experiment, phase, lrParams, gameProperties, intervals, traini
 
 experiment = '1'
 phase = 'A'
-intervals = 1000
-trainingIterations = 10000
+intervals = 500
+trainingIterations = 5000
 
 ##RL Agent parameters
 lrParams = {
