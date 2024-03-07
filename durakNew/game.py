@@ -24,6 +24,7 @@ class Game:
         ##Track Agent performance
         self.survivalCount = 0
         self.durakCount = 0
+        self.gameLength = 0
 
         self.agent = None
 
@@ -51,7 +52,8 @@ class Game:
         trumpCard = self.gamestate.talon[-1]
         self.gamestate.trumpSuit = trumpCard.suit
 
-        print(f"Trump suit is {self.gamestate.trumpSuit}")
+        if self.gamestate.printGameplay:
+            print(f"Trump suit is {self.gamestate.trumpSuit}")
 
     def rewards(self, agent, survivalCheck):
         
@@ -78,6 +80,9 @@ class Game:
         self.gamestate.maxHand = self.gameProperties['handCount']
         self.gamestate.maxTalon = self.gameProperties['talonCount']
 
+        ##Toggle printing gameplay
+        self.gamestate.printGameplay = self.gameProperties['printGameplay']
+
         ##Determine who starts
         attackingPlayerIndex = random.choice(self.playerList).getID()
         
@@ -90,11 +95,14 @@ class Game:
         finishedGamePlayers = []
 
         while len(self.playerList) > 1 and agentIn:
-
-            print(f"\n----------------------------\nRound {roundCounter}")
+            
+            if self.gamestate.printGameplay:
+                print(f"\n----------------------------\nRound {roundCounter}")
 
             round = Round(self.playerList, attackingPlayerIndex, self.gamestate)
             self.playerList, finishedPlayers, attackingPlayerIndex = round.playRound()
+
+            self.gameLength += 1
 
             ##Check if Agent has finished
             if len(finishedPlayers) > 0:
@@ -103,7 +111,10 @@ class Game:
                     ##If agent survives, end game prematurely...
                     if isinstance(player, AgentPlayer):
                         self.rewards(player, True)
-                        print("\nAgent survives")
+                        
+                        if self.gamestate.printGameplay:
+                            print("\nAgent survives")
+                        
                         agentIn = False
                         break
 
@@ -111,12 +122,15 @@ class Game:
             
             roundCounter += 1
         
-        print(f"\nGAME OVER. {self.playerList[0]} is the Durak.")
+        if self.gamestate.printGameplay:
+            print(f"\nGAME OVER. {self.playerList[0]} is the Durak.")
 
         ##If agent is Durak, they will be last player in playerlist
         if isinstance(self.playerList[0], AgentPlayer):
             self.rewards(self.playerList[0], False)
-            print("\nAgent is the Durak")
+            
+            if self.gamestate.printGameplay:
+                print("\nAgent is the Durak")
 
         ##Once game is finished, add all players back into playerList for next game...
         self.playerList.extend(finishedGamePlayers)

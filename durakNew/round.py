@@ -80,8 +80,8 @@ class Round:
             return []
 
     def defenderPickup(self, activePlayer, avgHandBefore = None):
-        
-        print("Defender picks up all cards on the table.")
+        if self.gamestate.printGameplay:
+            print("Defender picks up all cards on the table.")
 
         activePlayer.addCards(self.gamestate.getAttackCards())
         activePlayer.addCards(self.gamestate.getDefenseCards())
@@ -157,17 +157,21 @@ class Round:
                 drawCount += 1
 
                 if len(self.gamestate.talon) == 0:
-                    print("\nThe talon has been emptied.")
+                    if self.gamestate.printGameplay:
+                        print("\nThe talon has been emptied.")
                     break
 
             if drawCount == 0:
-                print(f"Player {player.playerID} draws no cards")
+                if self.gamestate.printGameplay:
+                    print(f"Player {player.playerID} draws no cards")
 
             elif drawCount == 1:    
-                print(f"Player {player.playerID} draws a card")
+                if self.gamestate.printGameplay:
+                    print(f"Player {player.playerID} draws a card")
 
             else:
-                print(f"Player {player.playerID} draws {drawCount} cards")
+                if self.gamestate.printGameplay:
+                    print(f"Player {player.playerID} draws {drawCount} cards")
  
     def numAttackers(self):
         if len(self.playerList) > 2:
@@ -190,8 +194,9 @@ class Round:
         self.determineRoles()
         numAttackers = self.numAttackers()
 
-        for player in self.playerList:
-            print(player)
+        if self.gamestate.printGameplay:
+            for player in self.playerList:
+                print(player)
 
         ##Boolean that becomes true when the round is over
         isOver = False
@@ -201,7 +206,8 @@ class Round:
 
         while not isOver:
 
-            print(f"\nIteration {iteration + 1}:")
+            if self.gamestate.printGameplay:
+                print(f"\nIteration {iteration + 1}:")
 
             if iteration % 2 == 0:
                 skipAttackCount = 0
@@ -211,7 +217,8 @@ class Round:
                     attacker = self.playerList[self.attackingPlayerIndex]
                     
                     action = self.attackerTurn(attacker, iteration)
-                    print(f"Player {attacker.playerID} has played the {action} to begin the attack!")
+                    if self.gamestate.printGameplay:
+                        print(f"Player {attacker.playerID} has played the {action} to begin the attack!")
 
                     self.addAttack(action)
                     
@@ -233,11 +240,13 @@ class Round:
                         if player.getRole() == 0:
                             
                             if len(player.hand) == 0:
-                                print(f"\nPlayer {player.playerID} has no more cards to attack with.")
+                                if self.gamestate.printGameplay:
+                                    print(f"\nPlayer {player.playerID} has no more cards to attack with.")
 
                             ##Maximum of maxHand attack cards
                             if len(self.gamestate.attackDefensePairs) > (self.gamestate.maxHand - 1):
-                                print("\nThere are now the maximum attack cards in play.")
+                                if self.gamestate.printGameplay:
+                                    print("\nThere are now the maximum attack cards in play.")
                                 break
 
                             action = self.attackerTurn(player, iteration)
@@ -249,7 +258,8 @@ class Round:
                             if action != -1:
 
                                 self.addAttack(action)
-                                print(f"The {action} has been added to the attack pile.\n")
+                                if self.gamestate.printGameplay:
+                                    print(f"The {action} has been added to the attack pile.\n")
                                 
                                 player.playCard(action)
                                 skipAttackCount = 0
@@ -260,7 +270,8 @@ class Round:
 
                             else:
                                 skipAttackCount += 1
-                                print(f"Attacker does not contribute to attack.\n")
+                                if self.gamestate.printGameplay:
+                                    print(f"Attacker does not contribute to attack.\n")
 
                                 if isinstance(player, AgentPlayer):
                                     avgHandAfter = player.averageHand()
@@ -289,7 +300,8 @@ class Round:
 
                     ##If action is -1, defender picks up all cards and round is over.
                     if action == -1:
-                        print(f"Round over, defender was unable to defend:\n{printCardLists(undefended)}\n")
+                        if self.gamestate.printGameplay:
+                            print(f"Round over, defender was unable to defend:\n{printCardLists(undefended)}\n")
                         isOver = True
                         defenseSuccess = False
                         break
@@ -299,10 +311,12 @@ class Round:
                         defenseCard, attackCard = action
                         
                         defenseCheck = self.addDefense(defenseCard, attackCard)
-                        print(f"The {attackCard} is defended by {defenseCard}\n")
+                        if self.gamestate.printGameplay:
+                            print(f"The {attackCard} is defended by {defenseCard}\n")
 
                         if defenseCheck is False:
-                            print("\nFailed to defend attack. The attack card was not found.")
+                            if self.gamestate.printGameplay:
+                                print("\nFailed to defend attack. The attack card was not found.")
                             break
 
                         defender.playCard(defenseCard)
@@ -324,7 +338,8 @@ class Round:
         if defenseSuccess is True:
             self.discardCards()
             attackerIndex = (self.attackingPlayerIndex + 1) % len(self.playerList)
-            print(f"End of round. Attack was beaten by defense.\nAll cards are moved to the discard pile.\n")
+            if self.gamestate.printGameplay:
+                print(f"End of round. Attack was beaten by defense.\nAll cards are moved to the discard pile.\n")
 
         ##If defense is unsuccessful, defender picks up all cards
         else:
@@ -335,7 +350,8 @@ class Round:
                 self.defenderPickup(defender)
             
             attackerIndex = (self.attackingPlayerIndex + 2) % len(self.playerList)
-            print(f"End of round. Defender picks up all cards on the table.\n")
+            if self.gamestate.printGameplay:
+                print(f"End of round. Defender picks up all cards on the table.\n")
 
         self.talonDraw(self.attackingPlayerIndex)
 
@@ -344,7 +360,8 @@ class Round:
         
             if len(player.hand) == 0:
                 
-                print(f"Player {player.playerID} has emptied their hand.\nThey bow out.")
+                if self.gamestate.printGameplay:
+                    print(f"Player {player.playerID} has emptied their hand.\nThey bow out.")
                 self.playerList.pop(i)
 
                 finishedPlayers.append(player)

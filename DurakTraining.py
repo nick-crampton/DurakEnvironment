@@ -6,6 +6,7 @@ from durakNew.playerTypes.lowestValueBot import LowestValueBot
 import json
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 
@@ -52,23 +53,29 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
         gameStatsTotal = {
         'trainingCount' : 0,
         'survivalCount': 0,
+        'gameLength': 0,
         'durakCount' : 0,
         'totalReward': 0,
         'averageReward': [],
         'averageRewardInterval': [],
         'survivalRates': [],
-        'survivalRatesInterval' : []
+        'survivalRatesInterval' : [],
+        'averageGameLength' : [],
+        'averageGameLengthInterval' : []
         }
 
         gameStatsPhase = {
         'trainingCount' : 0,
         'survivalCount': 0,
+        'gameLength': 0,
         'durakCount' : 0,
         'totalReward': 0,
         'averageReward': [],
         'averageRewardInterval': [],
         'survivalRates': [],
-        'survivalRatesInterval' : []
+        'survivalRatesInterval' : [],
+        'averageGameLength' : [],
+        'averageGameLengthInterval' : []
         }
 
     else:
@@ -77,6 +84,7 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
 
     survivalCountInterval = 0
     totalRewardInterval = 0
+    gameLengthInterval = 0
 
     for i in range(trainingIterations):
         print(f"\nGame {i+1}")
@@ -88,13 +96,16 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
         gameStatsTotal['trainingCount'] += 1
         gameStatsTotal['survivalCount'] += game.survivalCount
         gameStatsTotal['durakCount'] += game.durakCount
+        gameStatsTotal['gameLength'] += game.gameLength
 
         ##Add gameStats for a graph for just this stage of training
         gameStatsPhase['trainingCount'] += 1
         gameStatsPhase['survivalCount'] += game.survivalCount
         gameStatsPhase['durakCount'] += game.durakCount
-        
+        gameStatsPhase['gameLength'] += game.gameLength
+ 
         survivalCountInterval += game.survivalCount
+        gameLengthInterval += game.gameLength
 
         tempAgent = game.agent
         
@@ -103,11 +114,11 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
 
         totalRewardInterval += tempAgent.totalReward
 
+        print(f"\nReward accumulated in game is {tempAgent.totalReward}")
         game.agent.totalReward = 0
 
-        print(f"\nReward accumulated in game is {tempAgent.totalReward}")
-
-        if i % intervals == 0 and i > 0:
+        if (i + 1) % intervals == 0 and i > 0:
+            ##Survival Rates
             survivalRateTotal = (gameStatsTotal['survivalCount'] / gameStatsTotal['trainingCount']) * 100
             gameStatsTotal['survivalRates'].append(survivalRateTotal)
 
@@ -120,6 +131,7 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
 
             survivalCountInterval = 0
 
+            ##Average Reward
             averageRewardTotal = (gameStatsTotal['totalReward'] / gameStatsTotal['trainingCount'])
             gameStatsTotal['averageReward'].append(averageRewardTotal)
 
@@ -130,6 +142,21 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
             
             gameStatsTotal['averageRewardInterval'].append(averageRewardInterval)
             gameStatsPhase['averageRewardInterval'].append(averageRewardInterval)
+
+            totalRewardInterval = 0
+
+            ##Average Game Length
+            avgGameLengthTotal = (gameStatsTotal['gameLength'] / gameStatsTotal['trainingCount'])
+            gameStatsTotal['averageGameLength'].append(avgGameLengthTotal)
+
+            avgGameLengthPhase = (gameStatsPhase['gameLength'] / gameStatsPhase['trainingCount'])
+            gameStatsPhase['averageGameLength'].append(avgGameLengthPhase)
+
+            avgGameLengthInterval = (gameLengthInterval / intervals)
+            gameStatsTotal['averageGameLengthInterval'].append(avgGameLengthInterval)
+            gameStatsPhase['averageGameLengthInterval'].append(avgGameLengthInterval)
+
+            gameLengthInterval = 0
 
     agent = game.agent
 
@@ -150,9 +177,13 @@ def saveMetadata(metadata, directory, experiment = None, phase = None):
     with open(filepath, 'w') as file:
         json.dump(metadata, file)
 
-def loadMetadata(directory, experimentNo):
+def loadMetadata(directory, experiment = None, phase = None):
     metadataDirectory = os.path.join(directory, 'Metadata')
-    filepath = os.path.join(metadataDirectory, f'metadata_{experimentNo}.json')
+    if experiment is not None:
+        filepath = os.path.join(metadataDirectory, f'Metadata_experiment_{experiment}')
+
+    else:
+        filepath = os.path.join(metadataDirectory, f'Metadata_phase_{phase}')
 
     if not os.path.exists(filepath):
         print(f"No metadata found at {filepath}")
@@ -174,9 +205,9 @@ def saveJSON(qTable, directory, experimentNo):
     with open(filepath, 'w') as file:
         json.dump(qTableSave, file)
 
-def loadJSON(directory, experimentNo):
+def loadJSON(directory, experiment):
     tableDirectory = os.path.join(directory, 'Q-Tables')
-    filepath = os.path.join(tableDirectory, f'experiment_{experimentNo}.json')
+    filepath = os.path.join(tableDirectory, f'experiment_{experiment}.json')
 
     if not os.path.exists(filepath):
         print(f"No Q-table found at {filepath}")
@@ -196,9 +227,14 @@ def plotSurvivalRate(gameStats, interval, experiment, directory, phase = None):
     xIntervals = list(range(interval, len(gameStats['survivalRatesInterval']) * interval + 1, interval))
     yIntervals = gameStats['survivalRatesInterval']
 
-    plt.plot(xTotal, yTotal, marker='o', color = 'b', label = "Overall Survival Rate")
-    plt.plot(xIntervals, yIntervals, marker = 'o', color = 'r', label = 'Interval Survival Rate')
-    
+    ##Linear Regression of intervals
+    zInterval = np.polyfit(xIntervals, yIntervals, 1)
+    pFunc = np.poly1d(zInterval)
+
+    plt.plot(xTotal, yTotal, marker=',', color = 'r', label = "Overall Survival Rate")
+    plt.plot(xIntervals, yIntervals, marker = ',', color = 'b', label = 'Interval Survival Rate')
+    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = 'y', label = "Interval Survival Rate Trend")
+
     plt.xlabel('Number of Games')
     plt.ylabel('Survival Rate (%)')
     
@@ -232,23 +268,28 @@ def plotAverageRewards(gameStats, interval, experiment, directory, phase = None)
     xIntervals = list(range(interval, len(gameStats['averageRewardInterval']) * interval + 1, interval))
     yIntervals = gameStats['averageRewardInterval']
 
-    plt.plot(xTotal, yTotal, marker='o', color = 'b', label = "Overall Average Reward")
-    plt.plot(xIntervals, yIntervals, marker = 'o', color = 'r', label = 'Interval Average Reward')
+    ##Linear Regression of intervals
+    zInterval = np.polyfit(xIntervals, yIntervals, 1)
+    pFunc = np.poly1d(zInterval)
+
+    plt.plot(xTotal, yTotal, marker=',', color = 'r', label = "Overall Average Reward")
+    plt.plot(xIntervals, yIntervals, marker = ',', color = 'b', label = 'Interval Average Reward')
+    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = 'y', label = "Interval Average Reward Trend")
 
     plt.xlabel("Number of Games")
     plt.ylabel('Average Reward')
 
     if phase is None:
-        plt.title('Average Reward Over Total Training - Experiment {experiment}')
+        plt.title(f'Average Reward Over Total Training - Experiment {experiment}')
         filename = f"Average_reward_experiment_{experiment}.png"
 
     else:
         plt.title(f'Average Reward Over Phase {phase} - Experiment {experiment}')
         filename = f"Average_reward_experiment_{experiment}_phase_{phase}.png"
-
-    plt.ylim(-50, 50)
-    plt.axhline(y = 0, color = 'g', linestyle = '--')
-    plt.grid = True
+    
+    plt.axhline(y = 0, color = 'g')
+    plt.ylim(0.5, 1.5)
+    plt.grid(True)
     plt.legend()
 
     graphDirectory = os.path.join(directory, 'reward graphs')
@@ -258,6 +299,46 @@ def plotAverageRewards(gameStats, interval, experiment, directory, phase = None)
 
     plt.savefig(filepath)
     print("Reward graph saved.")
+    plt.close()
+
+def plotAverageGameLength(gameStats, interval, experiment, directory, phase = None):
+
+    xTotal = list(range(interval, len(gameStats['averageGameLength']) * interval + 1, interval))
+    yTotal = gameStats['averageGameLength']
+
+    xIntervals = list(range(interval, len(gameStats['averageGameLengthInterval']) * interval + 1, interval))
+    yIntervals = gameStats['averageGameLengthInterval']    
+
+    ##Linear Regression of intervals
+    zInterval = np.polyfit(xIntervals, yIntervals, 1)
+    pFunc = np.poly1d(zInterval)
+
+    plt.plot(xTotal, yTotal, marker=',', color = 'r', label = "Experiment Average Game Length")
+    plt.plot(xIntervals, yIntervals, marker = ',', color = 'b', label = 'Interval Average Game Length')
+    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = 'y', label = "Interval Average Game Length Trend")
+
+    plt.xlabel("Number of Games")
+    plt.ylabel('Average Game Length')
+
+    if phase is None:
+        plt.title(f'Average Game Length Over Total Training - Experiment {experiment}')
+        filename = f"Average_game_length_experiment_{experiment}.png"
+
+    else:
+        plt.title(f'Average Game Length Over Phase {phase} - Experiment {experiment}')
+        filename = f"Average_game_length_experiment_{experiment}_phase_{phase}.png"
+    
+    plt.ylim(0, 30)
+    plt.grid(True)
+    plt.legend() 
+
+    graphDirectory = os.path.join(directory, 'game length graphs')
+    os.makedirs(graphDirectory, exist_ok=True)
+
+    filepath = os.path.join(graphDirectory, filename)
+
+    plt.savefig(filepath)
+    print("Game length graph saved.")
     plt.close()
 
 def saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, agent, directory):
@@ -343,6 +424,10 @@ def saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrPa
     ##Plot the average reward over time
     plotAverageRewards(gameStatsTotal, intervals, experiment, folderPath)
     plotAverageRewards(gameStatsPhase, intervals, experiment, folderPath, phase)
+
+    ##Plot average game lengths
+    plotAverageGameLength(gameStatsTotal, intervals, experiment, folderPath)
+    plotAverageGameLength(gameStatsPhase, intervals, experiment, folderPath, phase)
     
     ##Save the Q-Table, and the Metadata
     saveJSON(agent.qTable, folderPath, experiment)
@@ -356,10 +441,10 @@ def determinePlayerTypes(phase):
     ## LowestValueBot   - 2
     ## Agent            - 3
 
-    if phase is "A":
+    if phase == "A":
         playerTypes = [3, 1]
 
-    elif phase is "B":
+    elif phase == "B":
         playerTypes = [3, 2]
 
     return playerTypes
@@ -373,11 +458,14 @@ def agentTraining(experiment, phase, lrParams, gameProperties, intervals, traini
     playerTypes = determinePlayerTypes(phase)
 
     ##Loads the qTable of the agent, if it exists
-    qTable = loadJSON(directory, experiment)
+    experimentFolder = f"experiment_{experiment}"
+    folderDirectory = os.path.join(directory, experimentFolder)
+
+    qTable = loadJSON(folderDirectory, experiment)
 
     if qTable is not None:
-        totalMetadata = loadMetadata(directory, experiment)
-        phaseMetadata = loadMetadata(directory, phase)
+        totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
+        phaseMetadata = loadMetadata(folderDirectory, phase = phase)
         playerList = createPlayers(playerTypes, qTable)
         gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
 
@@ -389,8 +477,8 @@ def agentTraining(experiment, phase, lrParams, gameProperties, intervals, traini
 
 experiment = '1'
 phase = 'A'
-intervals = 500
-trainingIterations = 5000
+intervals = 200
+trainingIterations = 50000
 
 ##RL Agent parameters
 lrParams = {
@@ -402,7 +490,8 @@ lrParams = {
 gameProperties = {
     "handCount" : 3,
     "talonCount" : 12,
-    "rankList" : 'd'
+    "rankList" : 'd',
+    "printGameplay" : False
 }
 
 ##Phases:

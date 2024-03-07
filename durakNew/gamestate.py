@@ -7,6 +7,8 @@ class GameState:
         self.discardPile = []
         self.maxTalon = 0
         self.maxHand = 0
+
+        self.printGameplay = True
     
     def undefendedCards(self):
         return [pair[0] for pair in self.attackDefensePairs if pair[1] is None]
