@@ -78,6 +78,23 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
         'averageGameLengthInterval' : []
         }
 
+    elif metadataPhase is None:
+        gameStatsTotal = metadataTotal
+
+        gameStatsPhase = {
+        'trainingCount' : 0,
+        'survivalCount': 0,
+        'gameLength': 0,
+        'durakCount' : 0,
+        'totalReward': 0,
+        'averageReward': [],
+        'averageRewardInterval': [],
+        'survivalRates': [],
+        'survivalRatesInterval' : [],
+        'averageGameLength' : [],
+        'averageGameLengthInterval' : []
+        }
+
     else:
         gameStatsTotal = metadataTotal
         gameStatsPhase = metadataPhase
@@ -233,7 +250,7 @@ def plotSurvivalRate(gameStats, interval, experiment, directory, phase = None):
 
     plt.plot(xTotal, yTotal, marker=',', color = 'r', label = "Overall Survival Rate")
     plt.plot(xIntervals, yIntervals, marker = ',', color = 'b', label = 'Interval Survival Rate')
-    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = 'y', label = "Interval Survival Rate Trend")
+    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = '#AAFF00', label = "Interval Survival Rate Trend")
 
     plt.xlabel('Number of Games')
     plt.ylabel('Survival Rate (%)')
@@ -274,7 +291,7 @@ def plotAverageRewards(gameStats, interval, experiment, directory, phase = None)
 
     plt.plot(xTotal, yTotal, marker=',', color = 'r', label = "Overall Average Reward")
     plt.plot(xIntervals, yIntervals, marker = ',', color = 'b', label = 'Interval Average Reward')
-    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = 'y', label = "Interval Average Reward Trend")
+    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = '#AAFF00', label = "Interval Average Reward Trend")
 
     plt.xlabel("Number of Games")
     plt.ylabel('Average Reward')
@@ -288,7 +305,7 @@ def plotAverageRewards(gameStats, interval, experiment, directory, phase = None)
         filename = f"Average_reward_experiment_{experiment}_phase_{phase}.png"
     
     plt.axhline(y = 0, color = 'g')
-    plt.ylim(0.5, 1.5)
+    plt.ylim(-0.5, 2)
     plt.grid(True)
     plt.legend()
 
@@ -315,7 +332,7 @@ def plotAverageGameLength(gameStats, interval, experiment, directory, phase = No
 
     plt.plot(xTotal, yTotal, marker=',', color = 'r', label = "Experiment Average Game Length")
     plt.plot(xIntervals, yIntervals, marker = ',', color = 'b', label = 'Interval Average Game Length')
-    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = 'y', label = "Interval Average Game Length Trend")
+    plt.plot(xIntervals, pFunc(xIntervals), linestyle = 'dashed', color = '#AAFF00', label = "Interval Average Game Length Trend")
 
     plt.xlabel("Number of Games")
     plt.ylabel('Average Game Length')
@@ -328,7 +345,7 @@ def plotAverageGameLength(gameStats, interval, experiment, directory, phase = No
         plt.title(f'Average Game Length Over Phase {phase} - Experiment {experiment}')
         filename = f"Average_game_length_experiment_{experiment}_phase_{phase}.png"
     
-    plt.ylim(0, 30)
+    plt.ylim(10, 20)
     plt.grid(True)
     plt.legend() 
 
@@ -476,9 +493,9 @@ def agentTraining(experiment, phase, lrParams, gameProperties, intervals, traini
     saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory)
 
 experiment = '1'
-phase = 'A'
-intervals = 200
-trainingIterations = 50000
+phase = 'B'
+intervals = 500
+trainingIterations = 100000
 
 ##RL Agent parameters
 lrParams = {
