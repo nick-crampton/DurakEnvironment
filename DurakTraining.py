@@ -39,10 +39,18 @@ def createPlayers(playerTypes, qTable = None, training = True):
 
     return playerList
 
-def playAgent(playerTypes, gameProperties, directory, experimentNo):
-    qTable = loadJSON(directory, experimentNo)
+def playGame(playerTypes, gameProperties, directory = None, experiment = None):
+   
+    if experiment is not None:
+        directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
+        experimentFolder = f"experiment_{experiment}"
+        folderDirectory = os.path.join(directory, experimentFolder)
+        qTable = loadJSON(folderDirectory, experiment)
+
+        playerList = createPlayers(playerTypes, qTable, False)
     
-    playerList = createPlayers(playerTypes, qTable, False)
+    else:
+        playerList = createPlayers(playerTypes)
 
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
@@ -508,7 +516,7 @@ gameProperties = {
     "handCount" : 3,
     "talonCount" : 12,
     "rankList" : 'd',
-    "printGameplay" : False
+    "printGameplay" : True
 }
 
 ##Phases:
@@ -516,5 +524,6 @@ gameProperties = {
 ## B - LowestValueBot Training
 ## C - 3 Player Matches
 
-agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
-##playAgent(playerTypes, gameProperties, targetDirectory, experimentNo)
+##agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
+
+playGame([2, 1, 1], gameProperties)

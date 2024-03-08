@@ -15,23 +15,22 @@ class Round:
 
     def determineRoles(self):
         numPlayers = len(self.playerList)
+        
+        ##Set all players initially to bystanders
+        for player in self.playerList:
+            player.setRole(2)
+        
+        ##Assign attacker role
+        self.playerList[self.attackingPlayerIndex].setRole(0)
 
-        for i in range(numPlayers):
-            position = (self.attackingPlayerIndex + i) % numPlayers
+        ##Assign defender
+        defenderIndex = (self.attackingPlayerIndex + 1) % numPlayers
+        self.playerList[defenderIndex].setRole(1)
 
-            if position == 0:
-                role = 0
-
-            elif position == 1:
-                role = 1
-
-            elif position == 2 and numPlayers >= 3:
-                role = 0
-            
-            else:
-                role = 2
-
-            self.playerList[i].setRole(role)
+        ##Assign other attacker if more than 2 players
+        if numPlayers > 2:
+            otherAttackerIndex = (defenderIndex + 1) % numPlayers
+            self.playerList[otherAttackerIndex].setRole(0)
 
     def possibleMoves(self, activePlayer, iteration = None):
         role = activePlayer.getRole()
