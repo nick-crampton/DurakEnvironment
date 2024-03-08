@@ -8,10 +8,30 @@ from durakNew.utils.roleDict import roleDict
 from durakNew.utils.printCardLists import printCardLists
 
 class Round:
-    def __init__(self, playerList, attackingPlayerIndex, gamestate):
+    def __init__(self, playerList, attackingPlayerID, gamestate):
         self.playerList = playerList
-        self.attackingPlayerIndex = attackingPlayerIndex
+        self.attackingPlayerID = attackingPlayerID
         self.gamestate = gamestate
+
+    def getNextID(self, id):
+        
+        for i, player in enumerate(self.playerList):
+            
+            ##Returns the first ID that is larger than parameter ID
+            playerID = player.getID()
+            if playerID > id:
+                return playerID
+                
+            
+        ##If none are larger, return the smallest ID (wraps round)
+        playerID = self.playerList[0].getID()
+        return playerID
+
+            
+    def getPlayerByID(self, id):
+        for player in self.playerList:
+            if player.getID() == id:
+                return player
 
     def determineRoles(self):
         numPlayers = len(self.playerList)
@@ -21,16 +41,19 @@ class Round:
             player.setRole(2)
         
         ##Assign attacker role
-        self.playerList[self.attackingPlayerIndex].setRole(0)
+        attacker = self.getPlayerByID(self.attackingPlayerID)
+        attacker.setRole(0)
 
         ##Assign defender
-        defenderIndex = (self.attackingPlayerIndex + 1) % numPlayers
-        self.playerList[defenderIndex].setRole(1)
+        defenderID = self.getNextID(self.attackingPlayerID)
+        defender = self.getPlayerByID(defenderID)
+        defender.setRole(1)
 
         ##Assign other attacker if more than 2 players
         if numPlayers > 2:
-            otherAttackerIndex = (defenderIndex + 1) % numPlayers
-            self.playerList[otherAttackerIndex].setRole(0)
+            otherAttackerID = self.getNextID(defenderID)
+            otherAttacker = self.getPlayerByID(otherAttackerID)
+            otherAttacker.setRole(0)
 
     def possibleMoves(self, activePlayer, iteration = None):
         role = activePlayer.getRole()
@@ -213,7 +236,7 @@ class Round:
                 
                 ##Turn 0, only the attacker can do anything in the initial round
                 if iteration == 0:
-                    attacker = self.playerList[self.attackingPlayerIndex]
+                    attacker = self.getPlayerByID(self.attackingPlayerID)
                     
                     action = self.attackerTurn(attacker, iteration)
                     if self.gamestate.printGameplay:
@@ -283,8 +306,8 @@ class Round:
                                 
 
             else:
-                defenderIndex = (self.attackingPlayerIndex + 1) % len(self.playerList)
-                defender = self.playerList[defenderIndex]
+                defenderID = self.getNextID(self.attackingPlayerID)
+                defender = self.getPlayerByID(defenderID)
 
                 undefended = self.gamestate.undefendedCards()
 
@@ -336,7 +359,7 @@ class Round:
         ##If defense is a success, all cards are sent to discard pile.
         if defenseSuccess is True:
             self.discardCards()
-            attackerIndex = (self.attackingPlayerIndex + 1) % len(self.playerList)
+            
             if self.gamestate.printGameplay:
                 print(f"End of round. Attack was beaten by defense.\nAll cards are moved to the discard pile.\n")
 
@@ -348,11 +371,11 @@ class Round:
             else:
                 self.defenderPickup(defender)
             
-            attackerIndex = (self.attackingPlayerIndex + 2) % len(self.playerList)
+                
             if self.gamestate.printGameplay:
                 print(f"End of round. Defender picks up all cards on the table.\n")
 
-        self.talonDraw(self.attackingPlayerIndex)
+        self.talonDraw(self.attackingPlayerID)
 
         for i, player in enumerate(self.playerList):
             finishedPlayers = []
@@ -365,6 +388,12 @@ class Round:
 
                 finishedPlayers.append(player)
 
-        return self.playerList, finishedPlayers, attackerIndex
+        if defenseSuccess is True:
+            attackerID = self.getNextID(self.attackingPlayerID)
+
+        else:
+            attackerID = self.getNextID(self.getNextID(self.attackingPlayerID))
+
+        return self.playerList, finishedPlayers, attackerID
         
         
