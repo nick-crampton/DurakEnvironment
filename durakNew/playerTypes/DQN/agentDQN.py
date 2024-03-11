@@ -53,6 +53,9 @@ class AgentDQN(Player):
         attackVector = [0] * self.gamestate.initialHand
         defenseVector = [0] * self.gamestate.initialHand
 
+        attackVector = [[0] * 13 for i in range(self.gamestate.initialHand)]
+        defenseVector = [[0] * 13 for i in range(self.gamestate.initialHand)]
+
         for i, (attack, defense) in enumerate(self.gamestate.attackDefensePairs):
             
             encodeAttack = self.encodeCard(attack)
@@ -62,7 +65,7 @@ class AgentDQN(Player):
                 encodeDefense = self.encodeCard(defense)
             
             else:
-                encodeDefense = 0
+                encodeDefense = self.encodeCard(0)
 
             defenseVector[i] = encodeDefense
 
@@ -91,7 +94,7 @@ class AgentDQN(Player):
     def encodeHandLengths(self, playerList):
         handLengthEncoding = [0] * self.gamestate.initialPlayerCount
 
-        for player in enumerate(playerList):
+        for i, player in enumerate(playerList):
             handLength = len(player.hand)
             i = player.getID()
 
@@ -103,25 +106,30 @@ class AgentDQN(Player):
         state = []
         
         encHand = self.encodeHand()
-        state.extend(encHand)
+        for card in encHand:
+            state.extend(card)
+
+        encDiscardPile = self.encodeDiscardPile(self.gamestate.discardPile)
+        for card in encDiscardPile:
+            state.extend(card)
+        
+        encAttackVector, encDefenseVector = self.encodeTableCards()
+        for card in encAttackVector:
+            state.extend(card)
+        for card in encDefenseVector:
+            state.extend(card)
 
         encHandLengths = self.encodeHandLengths(playerList)
         state.extend(encHandLengths)
 
-        encAttackVector, encDefenseVector = self.encodeTableCards()
-        state.extend(encAttackVector)
+        encRole = self.encodeRole(role)
+        state.extend(encRole)
 
-        encDiscardPile = self.encodeDiscardPile(self.gamestate.discardPile)
-        state.extend(encDiscardPile)
-        
         encTalon = self.encodeTalon()
-        state.extend(encTalon)
+        state.append(encTalon)
 
         encTrump = self.encodeTrump(self.gamestate.trumpSuit)
         state.extend(encTrump)
-
-        encRole = self.encodeRole(role)
-        state.extend(encRole)
 
         return state
     

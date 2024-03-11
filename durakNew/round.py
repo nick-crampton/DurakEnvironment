@@ -1,5 +1,6 @@
 from durakNew.player import Player
 from durakNew.playerTypes.agentPlayer import AgentPlayer
+from durakNew.playerTypes.DQN.agentDQN import AgentDQN
 
 from durakNew.deck import Deck
 from durakNew.gamestate import GameState
@@ -135,7 +136,8 @@ class Round:
 
     def attackerTurn(self, attacker, iteration):
         pm = self.possibleMoves(attacker, iteration)
-        if isinstance(attacker, AgentPlayer):
+        
+        if isinstance(attacker, AgentPlayer) or isinstance(attacker, AgentDQN):
             action = attacker.chooseAction(pm, attacker.getRole(), self.playerList)
 
         else:
@@ -146,7 +148,7 @@ class Round:
     def defenderTurn(self, defender):
         pm = self.possibleMoves(defender)
         
-        if isinstance(defender, AgentPlayer):
+        if isinstance(defender, AgentPlayer) or isinstance(defender, AgentDQN):
             action = defender.chooseAction(pm, defender.getRole(), self.playerList)
 
         else:
