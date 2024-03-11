@@ -124,8 +124,8 @@ class Round:
             if skipAttackCount >= numAttackers:
                 return True
             
-            ##Scenario 2: Attack has played cards, and defender has defender beat all in maxHand
-            elif len(self.gamestate.attackDefensePairs) == self.gamestate.maxHand:
+            ##Scenario 2: Attack has played cards, and defender has defender beat all in initialHand
+            elif len(self.gamestate.attackDefensePairs) == self.gamestate.initialHand:
                 return True
         
         ##Scenario 3: Defender manages to defend with every card in their hand
@@ -173,7 +173,7 @@ class Round:
             player = self.playerList[playerIndex]
             drawCount = 0
 
-            while len(player.hand) < self.gamestate.maxHand and (len(self.gamestate.talon) > 0):
+            while len(player.hand) < self.gamestate.initialHand and (len(self.gamestate.talon) > 0):
                 card = self.gamestate.talon.pop()
                 player.addCard(card)
                 drawCount += 1
@@ -265,8 +265,8 @@ class Round:
                                 if self.gamestate.printGameplay:
                                     print(f"\nPlayer {player.playerID} has no more cards to attack with.")
 
-                            ##Maximum of maxHand attack cards
-                            if len(self.gamestate.attackDefensePairs) > (self.gamestate.maxHand - 1):
+                            ##Maximum of initialHand attack cards
+                            if len(self.gamestate.attackDefensePairs) > (self.gamestate.initialHand - 1):
                                 if self.gamestate.printGameplay:
                                     print("\nThere are now the maximum attack cards in play.")
                                 break

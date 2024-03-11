@@ -1,5 +1,6 @@
 from durakNew.game import Game
 from durakNew.playerTypes.agentPlayer import AgentPlayer
+from durakNew.playerTypes.DQN.agentDQN import AgentDQN
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.lowestValueBot import LowestValueBot
@@ -7,8 +8,6 @@ import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-
-
 
 def createPlayers(playerTypes, qTable = None, training = True):
     playerList = []
@@ -31,9 +30,13 @@ def createPlayers(playerTypes, qTable = None, training = True):
             pass
         
         elif playerType == 3:
-            ##Create AgentPlayer
+            ##Create Q-Learning Agent
             newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
             pass
+
+        elif playerType == 4:
+            ##Create DQN Agent
+            newPlayer = AgentDQN([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
 
         playerList.append(newPlayer)
 
@@ -464,7 +467,8 @@ def determinePlayerTypes(phase):
     ## Human            - 0
     ## RandomBot        - 1
     ## LowestValueBot   - 2
-    ## Agent            - 3
+    ## Q Agent          - 3
+    ## DQN Agent        - 4
 
     if phase == "A":
         playerTypes = [3, 1]
@@ -513,9 +517,8 @@ lrParams = {
 }
 
 gameProperties = {
-    "handCount" : 3,
-    "talonCount" : 12,
-    "rankList" : 'd',
+    "handCount" : 6,
+    "talonCount" : 36,
     "printGameplay" : True
 }
 
@@ -526,4 +529,4 @@ gameProperties = {
 
 ##agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
 
-playGame([2, 1, 1], gameProperties)
+playGame([4, 1], gameProperties)

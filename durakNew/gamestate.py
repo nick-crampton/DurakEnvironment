@@ -6,7 +6,9 @@ class GameState:
         self.talon = []
         self.discardPile = []
         self.maxTalon = 0
-        self.maxHand = 0
+        self.cardCount = 0
+        self.initialHand = 0
+        self.initialPlayerCount = 0
 
         self.printGameplay = True
     

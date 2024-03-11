@@ -14,8 +14,6 @@ class AgentPlayer(Player):
 
         self.qTable = qTable if qTable is not None else {}        
         self.stateActionCounter = {}
-        
-        self.episode = []
 
         self.lastAction = None
         self.lastState = None
@@ -228,8 +226,8 @@ class AgentPlayer(Player):
 
     def encodeTableCards(self):
 
-        attackVector = [0] * self.gamestate.maxHand
-        defenseVector = [0] * self.gamestate.maxHand
+        attackVector = [0] * self.gamestate.initialHand
+        defenseVector = [0] * self.gamestate.initialHand
 
         for i, (attack, defense) in enumerate(self.gamestate.attackDefensePairs):
             

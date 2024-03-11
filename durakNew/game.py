@@ -14,8 +14,6 @@ class Game:
         self.deck = None
 
         self.playerList = playerList
-        self.initialPlayers = playerList
-
         self.gamestate = GameState()
 
         self.lrParams = lrParams if not None else {}
@@ -28,15 +26,22 @@ class Game:
 
         self.agent = None
 
+    def setCardCount(self):
+        cardCount = len(self.playerList) * self.gamestate.initialHand + self.gamestate.maxTalon
+        self.gamestate.cardCount = cardCount
 
+    def setInitialPlayers(self):
+        playerCount = len(self.playerList)
+        self.gamestate.initialPlayerCount = playerCount
+        
     def dealHands(self, activeDeck, handCount = None, talonCount = None):
-        maxHand = handCount if not None else 6
+        initialHand = handCount if not None else 6
         
         for player in self.playerList:
             player.hand.clear()
 
         ##Deal cards to each player
-        for i in range(0, maxHand):
+        for i in range(0, initialHand):
             for player in self.playerList:
                 if not activeDeck.isEmpty():
                     card = activeDeck.drawCard()
@@ -72,13 +77,17 @@ class Game:
     def newGame(self):
         
         ##Generate and shuffle new deck
-        self.deck = Deck.generateDeck(self.gameProperties['rankList'])
+        self.deck = Deck.generateDeck()
 
         ##Deal cards to each player
         self.dealHands(self.deck, self.gameProperties['handCount'], self.gameProperties['talonCount'])
 
-        self.gamestate.maxHand = self.gameProperties['handCount']
+        self.gamestate.initialHand = self.gameProperties['handCount']
         self.gamestate.maxTalon = self.gameProperties['talonCount']
+
+        ##Save to the game state A) The number of cards in play and B) The number of players at the start of the game
+        self.setCardCount()
+        self.setInitialPlayers()
 
         ##Toggle printing gameplay
         self.gamestate.printGameplay = self.gameProperties['printGameplay']
