@@ -5,16 +5,23 @@ from durakNew.utils.suitList import suitList
 import durakNew.playerTypes.DQN.training as Training
 import numpy as np
 import random
+import torch
 
 class AgentDQN(Player):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, qTable = None, isTraining = True):
+    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, gamma, model):
         super().__init__(hand, playerID, gamestate)
         self.learningRate = learningRate
         self.discount = discount
         self.epsilon = epsilon
+        self.gamma = gamma
 
-        self.qTable = qTable if qTable is not None else {}
-        self.isTraining = isTraining
+        self.lastAction = None
+        self.lastState = None
+        self.lastReward = None
+        self.totalReward = 0
+
+        self.model = model.to(Training.device)
+        self.model.eval()
     
     def encodeCard(self, card):
         encodedCard = [0] * 13
@@ -133,9 +140,51 @@ class AgentDQN(Player):
 
         return state
     
+    def dqnActionMapping(self, actionIndex, role):
+        if actionIndex == 0:
+            return -1
+        
+        elif actionIndex == 1:
+            return -1
+        
+        elif role == 0 and actionIndex <= 37:
+            cardActionIndex= actionIndex - 2
+             
+            rankIndex = cardActionIndex % len(rankList)
+            suitIndex = cardActionIndex // len(rankList)
+            return (rankIndex, suitIndex)
+        
+        elif role == 1:
+            trumpSuit = self.gamestate.trumpSuit
+            ##trumpValue =
+
+            
+            
+
+
     def chooseAction(self, possibleMoves, role, playerList):
         currentState = self.getStateRepresentation(playerList, role)
-        Training.convertToTensor(currentState)
+        stateTensor = Training.convertToTensor(currentState)
+
+        with torch.no_grad():
+            qValues = self.model(stateTensor)
+
+        if np.random.rand() < self.epsilon:
+            action = random.choice(possibleMoves)
+
+        else:
+            qValues = qValues.cpu().numpy().squeeze()
+            actionIndices = [self.encodeAction(action, possibleMoves, role) for action in possibleMoves]
+            validQ = qValues[actionIndices]
+            bestActionIndex = np.argmax(validQ)
+            action = possibleMoves[bestActionIndex]
+
+        ##Store experience
+            
+        self.lastState = currentState
+        self.lastAction = action
+
+        return action
 
 
 
