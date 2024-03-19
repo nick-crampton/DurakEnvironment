@@ -529,4 +529,4 @@ gameProperties = {
 
 ##agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
 
-playGame([4, 1], gameProperties)
+playGame([3, 1], gameProperties)
