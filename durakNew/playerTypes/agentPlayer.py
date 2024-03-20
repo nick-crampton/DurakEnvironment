@@ -5,7 +5,7 @@ from durakNew.utils.suitList import suitList
 import numpy as np
 import random
 
-class AgentQ(Agent):
+class AgentPlayer(Player):
     def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, qTable = None, isTraining = True):
         super().__init__(hand, playerID, gamestate)
         self.learningRate = learningRate

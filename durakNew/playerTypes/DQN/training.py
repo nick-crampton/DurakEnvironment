@@ -58,3 +58,4 @@ def trainNetwork(model, replayBuffer, batchSize):
 model = DQN(inputSize=1374, outputSize=425).to(device)
 ##optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+def startTraining(model, replayBuffer, batchSize, inputSize, outputSize)
