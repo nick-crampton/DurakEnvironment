@@ -2,13 +2,15 @@ from durakNew.player import Player
 from durakNew.card import Card
 from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList 
+from durakNew.utils.suitList import getKeyFromValue
+from durakNew.playerTypes.DQN import ReplayBuffer
 import durakNew.playerTypes.DQN.training as Training
 import numpy as np
 import random
 import torch
 
 class AgentDQN(Player):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, gamma, model):
+    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, gamma, model, replayBuffer):
         super().__init__(hand, playerID, gamestate)
         self.learningRate = learningRate
         self.discount = discount
@@ -22,6 +24,8 @@ class AgentDQN(Player):
 
         self.model = model.to(Training.device)
         self.model.eval()
+
+        self.replayBuffer = replayBuffer
     
     def encodeCard(self, card):
         encodedCard = [0] * 13
@@ -141,26 +145,59 @@ class AgentDQN(Player):
         return state
     
     def dqnActionMapping(self, actionIndex, role):
-        if actionIndex == 0:
-            return -1
-        
-        elif actionIndex == 1:
+        if actionIndex == 0 or actionIndex == 1:
             return -1
         
         elif role == 0 and actionIndex <= 37:
-            cardActionIndex= actionIndex - 2
+            cardActionIndex = actionIndex - 2
              
             rankIndex = cardActionIndex % len(rankList)
             suitIndex = cardActionIndex // len(rankList)
-            return (rankIndex, suitIndex)
+            
+            rankString = rankList[rankIndex][0]
+            suitString = getKeyFromValue(suitList, suitIndex)
+            
+            return (suitString, rankString)
         
         elif role == 1:
-            trumpSuit = self.gamestate.trumpSuit
-            ##trumpValue =
 
-            
-            
+            cardActionIndex = actionIndex - 38
+            ##Determine attackCard Suit
+            attackSuit = cardActionIndex // 117
 
+            totalDefenses = 0
+            
+            for attackRank in range(len(rankList)):
+                
+                defensesForRank = (len(rankList) - 1 - attackRank) + len(rankList)
+
+                if (totalDefenses + defensesForRank) > cardActionIndex:
+                    defenseWithinRank = cardActionIndex - totalDefenses
+
+                    if defenseWithinRank < (len(rankList) - 1 - attackRank)
+
+                        defendSuit = attackSuit
+                        defendRank = defenseWithinRank + 1 + attackRank
+
+                    else:
+                        defendSuit = self.gamestate.TrumpSuit
+                        defendRank = defenseWithinRank - (len(rankList) - 1 - attackRank) 
+
+                    attackSuitString = getKeyFromValue(suitList, attackSuit)
+                    defendSuitString = getKeyFromValue(suitList, defendSuit)
+
+                    attackRankString = rankList[attackRank][0]
+                    defendRankString = rankList[defendRank][0]
+
+                    attackCard = (attackSuitString, attackRankString)
+                    defenseCard = (defendSuitString, defendRankString)
+
+                    return (attackCard, defenseCard)
+
+                totalDefenses += defensesForRank
+
+        print("No action was found in the mapping")
+        return None
 
     def chooseAction(self, possibleMoves, role, playerList):
         currentState = self.getStateRepresentation(playerList, role)
@@ -177,10 +214,43 @@ class AgentDQN(Player):
             actionIndices = [self.encodeAction(action, possibleMoves, role) for action in possibleMoves]
             validQ = qValues[actionIndices]
             bestActionIndex = np.argmax(validQ)
-            action = possibleMoves[bestActionIndex]
-
-        ##Store experience
             
+            actionDecoded = self.dqnActionMapping(bestActionIndex, role)
+
+            if actionDecoded == -1:
+                action = -1
+
+            else:
+
+                for move in possibleMoves:
+
+                    if role == 0:
+                        suit = actionDecoded[0]
+                        rank = actionDecoded[1]
+
+                        if isinstance(move, Card):
+                            cardSuit = move.getSuit()
+                            cardRank = move.getRank()
+
+                            if cardSuit == suit and cardRank == rank:
+                                return move
+
+                    elif role == 1:
+                        defenseSuit = actionDecoded[0][0]
+                        defenseRank = actionDecoded[0][1]
+
+                        attackSuit = actionDecoded[1][0]
+                        attackRank = actionDecoded[1][1]
+
+                        if isinstance(move, tuple):
+                            attackCard = move[0]
+                            defenseCard = move[1]
+
+                            if (defenseCard.getSuit() == defenseSuit and defenseCard.getRank() == defenseRank) and (attackCard.getSuit() == attackSuit and attackCard.getRank() == attackRank):
+                                return move
+                        
+        self.replayBuffer.storeExperience(self.lastState, self.lastAction, currentState, self.lastReward)
+
         self.lastState = currentState
         self.lastAction = action
 

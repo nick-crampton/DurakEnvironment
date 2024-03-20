@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from durakNew.playerTypes.DQN import agentDQN
+from durakNew.playerTypes.DQN import replayBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -31,12 +32,14 @@ def trainNetwork(model, replayBuffer, batchSize):
         return
     
     batch = random.sample(replayBuffer, batchSize)
+    
+    states, actions, nextStates, rewards, gameCompletion = zip(*batch)
 
-    states = torch.tensor([b[0] for b in batch], dtype=torch.float, device=device)
-    actions = torch.tensor([b[1] for b in batch], dtype=torch.long, device=device)
-    rewards = torch.tensor([b[2] for b in batch], dtype=torch.float, device=device)
-    futureStates = torch.tensor([b[3] for b in batch], dtype=torch.float, device=device)
-    T = torch.tensor([b[4] for b in batch], dtype=torch.float, device=device)
+    states = torch.tensor(states, dtype=torch.float32)
+    actions = torch.tensor(actions, dtype=torch.long)
+    nextStates = torch.tensor(nextStates, dtype=torch.float32)
+    rewards = torch.tensor(rewards, dtype=torch.float32)
+    gameCompletions = torch.tensor(gameCompletions, dtype=torch.float32)
 
     outputTensor = model(states)
     actionSelected = actions.unsqueeze(-1)
