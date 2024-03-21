@@ -2,8 +2,7 @@ from durakNew.player import Player
 from durakNew.round import Round
 from durakNew.gamestate import GameState
 from durakNew.playerTypes.humanPlayer import HumanPlayer
-from durakNew.playerTypes.randomBot import RandomBot
-from durakNew.playerTypes.agentPlayer import AgentPlayer
+from durakNew.playerTypes.agent import Agent
 from durakNew.deck import Deck
 
 import random
@@ -118,7 +117,7 @@ class Game:
                 for player in finishedPlayers:
                     
                     ##If agent survives, end game prematurely...
-                    if isinstance(player, AgentPlayer):
+                    if isinstance(player, Agent):
                         self.rewards(player, True)
                         
                         if self.gamestate.printGameplay:
@@ -135,7 +134,7 @@ class Game:
             print(f"\nGAME OVER. {self.playerList[0]} is the Durak.")
 
         ##If agent is Durak, they will be last player in playerlist
-        if isinstance(self.playerList[0], AgentPlayer):
+        if isinstance(self.playerList[0], Agent):
             self.rewards(self.playerList[0], False)
             
             if self.gamestate.printGameplay:

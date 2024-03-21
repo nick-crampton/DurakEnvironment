@@ -1,3 +1,4 @@
+from durakNew.player import Player
 
 class Agent(Player):
     def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon):

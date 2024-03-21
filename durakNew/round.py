@@ -1,6 +1,5 @@
 from durakNew.player import Player
-from durakNew.playerTypes.agentPlayer import AgentPlayer
-from durakNew.playerTypes.DQN.agentDQN import AgentDQN
+from durakNew.playerTypes.agent import Agent
 
 from durakNew.deck import Deck
 from durakNew.gamestate import GameState
@@ -109,7 +108,7 @@ class Round:
         activePlayer.addCards(self.gamestate.getAttackCards())
         activePlayer.addCards(self.gamestate.getDefenseCards())
 
-        if isinstance(activePlayer, AgentPlayer):
+        if isinstance(activePlayer, Agent):
             avgHandAfter = activePlayer.averageHand()
             activePlayer.ingameReward(avgHandBefore, avgHandAfter)
 
@@ -137,7 +136,7 @@ class Round:
     def attackerTurn(self, attacker, iteration):
         pm = self.possibleMoves(attacker, iteration)
         
-        if isinstance(attacker, AgentPlayer) or isinstance(attacker, AgentDQN):
+        if isinstance(attacker, Agent):
             action = attacker.chooseAction(pm, attacker.getRole(), self.playerList)
 
         else:
@@ -148,7 +147,7 @@ class Round:
     def defenderTurn(self, defender):
         pm = self.possibleMoves(defender)
         
-        if isinstance(defender, AgentPlayer) or isinstance(defender, AgentDQN):
+        if isinstance(defender, Agent):
             action = defender.chooseAction(pm, defender.getRole(), self.playerList)
 
         else:
@@ -247,12 +246,12 @@ class Round:
                     self.addAttack(action)
                     
                     ##For agents, calculate average hand before and after playing an action, for rewards
-                    if isinstance(attacker, AgentPlayer):
+                    if isinstance(attacker, Agent):
                         avgHandBefore = attacker.averageHand()
 
                     attacker.playCard(action)
 
-                    if isinstance(attacker, AgentPlayer):
+                    if isinstance(attacker, Agent):
                         avgHandAfter = attacker.averageHand()
                         attacker.ingameReward(avgHandBefore, avgHandAfter)
 
@@ -276,7 +275,7 @@ class Round:
                             action = self.attackerTurn(player, iteration)
 
                             ##For agents, calculate average hand before and after playing an action, for rewards
-                            if isinstance(player, AgentPlayer):
+                            if isinstance(player, Agent):
                                 avgHandBefore = player.averageHand()
 
                             if action != -1:
@@ -288,7 +287,7 @@ class Round:
                                 player.playCard(action)
                                 skipAttackCount = 0
 
-                                if isinstance(player, AgentPlayer):
+                                if isinstance(player, Agent):
                                     avgHandAfter = player.averageHand()
                                     player.ingameReward(avgHandBefore, avgHandAfter)
 
@@ -297,7 +296,7 @@ class Round:
                                 if self.gamestate.printGameplay:
                                     print(f"Attacker does not contribute to attack.\n")
 
-                                if isinstance(player, AgentPlayer):
+                                if isinstance(player, Agent):
                                     avgHandAfter = player.averageHand()
                                     player.ingameReward(avgHandBefore, avgHandAfter)
 
@@ -319,7 +318,7 @@ class Round:
                     action = self.defenderTurn(defender)
 
                     ##For agents, calculate average hand before and after playing an action, for rewards
-                    if isinstance(defender, AgentPlayer):
+                    if isinstance(defender, Agent):
                         avgHandBefore = defender.averageHand()
 
                     ##If action is -1, defender picks up all cards and round is over.
@@ -345,7 +344,7 @@ class Round:
 
                         defender.playCard(defenseCard)
 
-                        if isinstance(defender, AgentPlayer):
+                        if isinstance(defender, Agent):
                             avgHandAfter = defender.averageHand()
                             defender.ingameReward(avgHandBefore, avgHandAfter)
 
@@ -367,7 +366,7 @@ class Round:
 
         ##If defense is unsuccessful, defender picks up all cards
         else:
-            if isinstance(defender, AgentPlayer):
+            if isinstance(defender, Agent):
                 self.defenderPickup(defender, avgHandBefore)
 
             else:

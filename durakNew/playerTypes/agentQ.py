@@ -1,27 +1,18 @@
 from durakNew.player import Player
+from durakNew.playerTypes import agent
 from durakNew.card import Card
 from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList 
 import numpy as np
 import random
 
-class AgentPlayer(Player):
+class AgentQ(Agent):
     def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, qTable = None, isTraining = True):
-        super().__init__(hand, playerID, gamestate)
-        self.learningRate = learningRate
-        self.discount = discount
-        self.epsilon = epsilon
-
+        super().__init__(hand, playerID, gamestate, learningRate, discount, epsilon)
         self.qTable = qTable if qTable is not None else {}        
+        self.isTraining = isTraining
         self.stateActionCounter = {}
 
-        self.lastAction = None
-        self.lastState = None
-        self.lastReward = None
-        self.totalReward = 0
-
-        self.isTraining = isTraining
-        
     def encodeCard(self, card):
         rankLow = ['6', '7', '8']
         rankMid = ['9', '10', 'Jack']
@@ -265,28 +256,4 @@ class AgentPlayer(Player):
         }
 
         return state
-    
-    def averageHand(self):
-        
-        if not self.hand:
-            return 0
-
-        totalEncodedValue = sum(self.encodeCard(card) for card in self.hand)
-        averageEncodedValue = totalEncodedValue / len(self.hand)
-
-        return averageEncodedValue
-
-    def ingameReward(self, before, after):
-        avgDifference = after - before
-
-        if avgDifference > 0:
-            self.lastReward = 0.1
-            self.totalReward += 0.1
-
-        elif avgDifference < 0:
-            self.lastReward = -0.1
-            self.totalReward -= 0.1
-
-        else:
-            self.lastReward = 0
 

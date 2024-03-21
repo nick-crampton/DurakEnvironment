@@ -1,5 +1,5 @@
 from durakNew.game import Game
-from durakNew.playerTypes.agentPlayer import AgentPlayer
+from durakNew.playerTypes.agentQ import AgentQ
 from durakNew.playerTypes.DQN.agentDQN import AgentDQN
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer

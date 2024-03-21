@@ -1,7 +1,7 @@
 from durakNew.game import Game
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.randomBot import RandomBot
-from durakNew.playerTypes.agentPlayer import AgentPlayer
+from durakNew.playerTypes.agentQ import AgentQ
 
 ##Pass array of players with their respective types:
 ## Human    - 0
