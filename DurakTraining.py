@@ -9,6 +9,7 @@ import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 def createPlayers(playerTypes, qTable = None, training = True):
     playerList = []
@@ -59,7 +60,7 @@ def playGame(playerTypes, gameProperties, directory = None, experiment = None):
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
 
-def runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, batchSize = None, metadataTotal = None, metadataPhase = None):
+def runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, batchSize = None, trainingIntervals = None, metadataTotal = None, metadataPhase = None):
     
     if metadataTotal is None:
         gameStatsTotal = {
@@ -126,32 +127,28 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
         gameStatsTotal['survivalCount'] += game.survivalCount
         gameStatsTotal['durakCount'] += game.durakCount
         gameStatsTotal['gameLength'] += game.gameLength
+        gameStatsTotal['totalReward'] += game.agent.totalReward
 
         ##Add gameStats for a graph for just this stage of training
         gameStatsPhase['trainingCount'] += 1
         gameStatsPhase['survivalCount'] += game.survivalCount
         gameStatsPhase['durakCount'] += game.durakCount
         gameStatsPhase['gameLength'] += game.gameLength
+        gameStatsPhase['totalReward'] += game.agent.totalReward
  
         survivalCountInterval += game.survivalCount
         gameLengthInterval += game.gameLength
+        totalRewardInterval += game.agent.totalReward
 
-        tempAgent = game.agent
-        
-        gameStatsTotal['totalReward'] += tempAgent.totalReward
-        gameStatsPhase['totalReward'] += tempAgent.totalReward
-
-        totalRewardInterval += tempAgent.totalReward
-
-        print(f"\nReward accumulated in game is {tempAgent.totalReward}")
+        print(f"\nReward accumulated in game is {game.agent.totalReward}")
         game.agent.totalReward = 0
 
-        if len(tempAgent.replayBuffer) >= batchSize:
+        if (i + 1) % trainingIntervals == 0:
             print("Gameplay halted, neural network is training...")
-            tempAgent.trainNetwork()
             
-
-
+            if len(game.agent.replayBuffer) >= batchSize:
+                game.agent.trainNetwork(trainingIntervals)
+        
         if (i + 1) % intervals == 0 and i > 0:
             ##Survival Rates
             survivalRateTotal = (gameStatsTotal['survivalCount'] / gameStatsTotal['trainingCount']) * 100
@@ -196,6 +193,47 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
     agent = game.agent
 
     return gameStatsTotal, gameStatsPhase, agent
+
+def saveModel(model, directory, experiment = None, phase = None):
+    modelDirectory = os.path.join(directory, 'Model')
+    os.makedirs(modelDirectory, exist_ok = True)
+
+    if experiment is not None and phase is not None:
+        filename = f"Model_experiment_{experiment}_phase_{phase}.pth"
+    elif experiment is not None:
+        filename = f"Model_experiment_{experiment}.pth"
+    elif phase is not None:
+        filename = f"Model_phase_{phase}.pth"
+    else:
+        filename = "Model.pth"
+
+    filepath = os.path.join(modelDirectory, filename)
+    torch.save(model.state_dict(), filepath)
+    print(f"Model saved to {filepath}")
+
+def loadModel(model, directory, experiment = None, phase = None):
+    modelDirectory = os.path.join(directory, 'Model')
+    
+    # Construct the filename in the same way as saveModel
+    if experiment is not None and phase is not None:
+        filename = f"Model_experiment_{experiment}_phase_{phase}.pth"
+    elif experiment is not None:
+        filename = f"Model_experiment_{experiment}.pth"
+    elif phase is not None:
+        filename = f"Model_phase_{phase}.pth"
+    else:
+        filename = "Model.pth"
+
+    filepath = os.path.join(modelDirectory, filename)
+    
+    if not os.path.isfile(filepath):
+        print(f"No model found at {filepath}. Please check your parameters or path.")
+        return None
+    
+    model.load_state_dict(torch.load(filepath, map_location=torch.device('cpu')))
+    print(f"Model loaded from {filepath}")
+    
+    return model    
 
 def saveMetadata(metadata, directory, experiment = None, phase = None):
     metadataDirectory = os.path.join(directory, 'Metadata')
@@ -514,7 +552,7 @@ def agentTraining(experiment, phase, lrParams, gameProperties, intervals, traini
 experiment = '1'
 phase = 'B'
 intervals = 500
-trainingIterations = 100000
+trainingIterations = 50000
 
 ##RL Agent parameters
 lrParams = {
