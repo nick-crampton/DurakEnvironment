@@ -1,31 +1,25 @@
-from durakNew.player import Player
+from durakNew.playerTypes.agent import Agent
 from durakNew.card import Card
 from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList 
 from durakNew.utils.suitList import getKeyFromValue
-from durakNew.playerTypes.DQN import ReplayBuffer
+from durakNew.playerTypes.DQN.replayBuffer import ReplayBuffer
 import durakNew.playerTypes.DQN.training as Training
 import numpy as np
 import random
 import torch
 
-class AgentDQN(Player):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, gamma, model, replayBuffer):
-        super().__init__(hand, playerID, gamestate)
-        self.learningRate = learningRate
-        self.discount = discount
-        self.epsilon = epsilon
-        self.gamma = gamma
-
-        self.lastAction = None
-        self.lastState = None
-        self.lastReward = None
-        self.totalReward = 0
-
+class AgentDQN(Agent):
+    def __init__(self, hand, playerID, gamestate, lrParameters, model, replayBuffer = None):
+        super().__init__(hand, playerID, gamestate, lrParameters)
         self.model = model.to(Training.device)
         self.model.eval()
+        self.replayBuffer = replayBuffer if replayBuffer is not None else ReplayBuffer(self.batchSize)
 
-        self.replayBuffer = replayBuffer
+        self.gamma = lrParameters['gamma']
+        self.batchSize = lrParameters['batchSize']
+        self.inputSize = lrParameters['inputSize']
+        self.outputSize = lrParameters['outputSize']
     
     def encodeCard(self, card):
         encodedCard = [0] * 13
@@ -255,9 +249,6 @@ class AgentDQN(Player):
         self.lastAction = action
 
         return action
-
-
-
-
-
     
+    def trainNetwork(self, iterations):
+        Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)

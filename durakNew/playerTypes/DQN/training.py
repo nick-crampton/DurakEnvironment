@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+import random
 from durakNew.playerTypes.DQN import agentDQN
 from durakNew.playerTypes.DQN import replayBuffer
 
@@ -48,9 +48,9 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     actionSelected = actions.unsqueeze(-1)
     currentQ = outputTensor.gather(1, actionSelected).squeeze(-1)
     
-    nextQ = model(futureStates).detach().max(1)[0]
+    nextQ = model(nextStates).detach().max(1)[0]
 
-    targetQ = rewards + (gamma * nextQ * (1 - T))
+    targetQ = rewards + (gamma * nextQ * (1 - gameCompletions))
 
     loss = F.mse_loss(currentQ, targetQ)
 
@@ -58,10 +58,13 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     loss.backward()
     optimizer.step()
 
-def startTraining(model, replayBuffer, batchSize, inputSize, outputSize, gamma):
+def startTraining(model, replayBuffer, batchSize, inputSize, outputSize, gamma, trainingIterations):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DQN(inputSize= inputSize, outputSize=outputSize).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-    trainNetwork(model, replayBuffer, batchSize, optimizer, gamma)
+    for i in range(trainingIterations):
+        trainNetwork(model, replayBuffer, batchSize, optimizer, gamma)
+
+    return model
 

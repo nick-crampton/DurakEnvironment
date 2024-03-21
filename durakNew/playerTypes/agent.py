@@ -1,11 +1,15 @@
 from durakNew.player import Player
 
 class Agent(Player):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon):
+    def __init__(self, hand, playerID, gamestate, lrParameters):
         super().__init__(hand, playerID, gamestate)
-        self.learningRate = learningRate
-        self.discount = discount
-        self.epsilon = epsilon
+
+        self.lrParameters = lrParameters
+        ##Contains learningRate, discount and epsilon
+
+        self.learningRate = lrParameters['learningRate']
+        self.discount = lrParameters['discount']
+        self.epsilon = lrParameters['epsilon']
 
         self.lastAction = None
         self.lastState = None

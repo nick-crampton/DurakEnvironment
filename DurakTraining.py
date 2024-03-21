@@ -1,6 +1,7 @@
 from durakNew.game import Game
 from durakNew.playerTypes.agentQ import AgentQ
 from durakNew.playerTypes.DQN.agentDQN import AgentDQN
+from durakNew.playerTypes.DQN.replayBuffer import ReplayBuffer
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.lowestValueBot import LowestValueBot
@@ -31,12 +32,12 @@ def createPlayers(playerTypes, qTable = None, training = True):
         
         elif playerType == 3:
             ##Create Q-Learning Agent
-            newPlayer = AgentPlayer([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
+            newPlayer = AgentQ([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
             pass
 
         elif playerType == 4:
             ##Create DQN Agent
-            newPlayer = AgentDQN([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
+            newPlayer = AgentDQN([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], gamma = lrParams["gamma"])
 
         playerList.append(newPlayer)
 
@@ -58,7 +59,7 @@ def playGame(playerTypes, gameProperties, directory = None, experiment = None):
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
 
-def runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, metadataTotal = None, metadataPhase = None):
+def runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, batchSize = None, metadataTotal = None, metadataPhase = None):
     
     if metadataTotal is None:
         gameStatsTotal = {
@@ -144,6 +145,12 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
 
         print(f"\nReward accumulated in game is {tempAgent.totalReward}")
         game.agent.totalReward = 0
+
+        if len(tempAgent.replayBuffer) >= batchSize:
+            print("Gameplay halted, neural network is training...")
+            tempAgent.trainNetwork()
+            
+
 
         if (i + 1) % intervals == 0 and i > 0:
             ##Survival Rates
@@ -514,6 +521,10 @@ lrParams = {
     "learningRate": 0.1,
     "discount": 0.99,
     "epsilon": 0.1,
+    "gamma" : 0,
+    "batchSize" : 128,
+    "inputSize" : 1374,
+    "outputSize" : 506
 }
 
 gameProperties = {

@@ -7,11 +7,12 @@ import numpy as np
 import random
 
 class AgentQ(Agent):
-    def __init__(self, hand, playerID, gamestate, learningRate, discount, epsilon, qTable = None, isTraining = True):
-        super().__init__(hand, playerID, gamestate, learningRate, discount, epsilon)
+    def __init__(self, hand, playerID, gamestate, lrParameters, qTable = None, isTraining = True):
+        super().__init__(hand, playerID, gamestate, lrParameters)
         self.qTable = qTable if qTable is not None else {}        
         self.isTraining = isTraining
         self.stateActionCounter = {}
+
 
     def encodeCard(self, card):
         rankLow = ['6', '7', '8']
