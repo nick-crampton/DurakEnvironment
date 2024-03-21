@@ -1,8 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
+
 from durakNew.playerTypes.DQN import agentDQN
 from durakNew.playerTypes.DQN import replayBuffer
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -27,7 +30,7 @@ class DQN(nn.Module):
         x = self.out(x)
         return x
     
-def trainNetwork(model, replayBuffer, batchSize):
+def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     if len(replayBuffer) < batchSize:
         return
     
@@ -55,7 +58,10 @@ def trainNetwork(model, replayBuffer, batchSize):
     loss.backward()
     optimizer.step()
 
-model = DQN(inputSize=1374, outputSize=425).to(device)
-##optimizer = optim.Adam(model.parameters(), lr=0.001)
+def startTraining(model, replayBuffer, batchSize, inputSize, outputSize, gamma):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = DQN(inputSize= inputSize, outputSize=outputSize).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-def startTraining(model, replayBuffer, batchSize, inputSize, outputSize)
+    trainNetwork(model, replayBuffer, batchSize, optimizer, gamma)
+
