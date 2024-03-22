@@ -251,4 +251,5 @@ class AgentDQN(Agent):
         return action
     
     def trainNetwork(self, iterations):
-        Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)
+        model = Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)
+        return model

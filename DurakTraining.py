@@ -147,7 +147,8 @@ def runExperiment(trainingIterations, playerList, lrParams, gameProperties, inte
             print("Gameplay halted, neural network is training...")
             
             if len(game.agent.replayBuffer) >= batchSize:
-                game.agent.trainNetwork(trainingIntervals)
+                model = game.agent.trainNetwork(trainingIntervals)
+                saveModel(model, directory)
         
         if (i + 1) % intervals == 0 and i > 0:
             ##Survival Rates
@@ -523,29 +524,31 @@ def determinePlayerTypes(phase):
 
     return playerTypes
 
-def agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations):
+def agentTraining(experiment, phase, playerTypes, lrParams, gameProperties, intervals, trainingIterations):
     
     ##Results are stored in experiments folder
     directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
-
-    ##Get the playerTypes given the phase of training we are in
-    playerTypes = determinePlayerTypes(phase)
 
     ##Loads the qTable of the agent, if it exists
     experimentFolder = f"experiment_{experiment}"
     folderDirectory = os.path.join(directory, experimentFolder)
 
-    qTable = loadJSON(folderDirectory, experiment)
+    if 3 in playerTypes:
+        qTable = loadJSON(folderDirectory, experiment)
 
-    if qTable is not None:
-        totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
-        phaseMetadata = loadMetadata(folderDirectory, phase = phase)
-        playerList = createPlayers(playerTypes, qTable)
-        gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
+        if qTable is not None:
+            totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
+            phaseMetadata = loadMetadata(folderDirectory, phase = phase)
+            playerList = createPlayers(playerTypes, qTable)
+            gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
 
-    else:
-        playerList = createPlayers(playerTypes)
-        gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
+        else:
+            playerList = createPlayers(playerTypes)
+            gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
+    
+    elif 4 in playerTypes:
+        model = loadModel(folderDirectory, experiment)
+
 
     saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory)
 
