@@ -20,6 +20,8 @@ class AgentDQN(Agent):
         self.batchSize = lrParameters['batchSize']
         self.inputSize = lrParameters['inputSize']
         self.outputSize = lrParameters['outputSize']
+        self.trainingIntervals = lrParameters['trainingIntervals']
+        
     
     def encodeCard(self, card):
         encodedCard = [0] * 13
@@ -252,4 +254,4 @@ class AgentDQN(Agent):
     
     def trainNetwork(self, iterations):
         model = Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)
-        return model
+        self.model = model

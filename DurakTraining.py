@@ -43,7 +43,7 @@ def createPlayers(playerTypes, training):
             folderDirectory = os.path.join(directory, experimentFolder)
             
             if player["type"] == 3:
-                qTable = loadJSON(folderDirectory, experiment)
+                qTable = loadQTable(folderDirectory, experiment)
                 if qTable is not None:
                     totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
                     phaseMetadata = loadMetadata(folderDirectory, phase = phase)
@@ -79,7 +79,7 @@ def playGame(playerTypes, gameProperties, directory = None, experiment = None):
         directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
         experimentFolder = f"experiment_{experiment}"
         folderDirectory = os.path.join(directory, experimentFolder)
-        qTable = loadJSON(folderDirectory, experiment)
+        qTable = loadQTable(folderDirectory, experiment)
 
         playerList = createPlayers(playerTypes, qTable, False)
     
@@ -89,7 +89,7 @@ def playGame(playerTypes, gameProperties, directory = None, experiment = None):
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
 
-def runExperiment(playerList, metadataList, gameProperties, analysisIntervals):
+def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, trainingIterations):
     
     agentsStats = [{'total': None, 'phase': None, 'interval': {'survivalCount': 0, 'totalReward': 0, 'gameLength': 0}} for i in playerList]
     
@@ -168,17 +168,17 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals):
                 print(f"\nReward accumulated in game is {game.agent.totalReward}")
                 agent.totalReward = 0
 
-        if (i + 1) % trainingIntervals == 0:
-            print("Training neural networks")
-            
-            for agent in playerList:
-                
-                if isinstance(agent, AgentDQN) and len(agent.replayBuffer) >= agent.batchSize:
-                    agent.trainNetwork()
-                               
+        for agent in playerList:
+            if isinstance(agent, AgentDQN):
+                if (i +  1) % agent.trainingIntervals == 0:
+                    print(f"Training neural network of player {agent.playerID}")
+
+                    if len(agent.replayBuffer) >= agent.batchSize:
+                        agent.trainNetwork()
+                                
         if (i + 1) % analysisIntervals == 0 and i > 0:
             
-            for j, agentStats in enumerate(agentsStats):
+            for agentStats in agentsStats:
                 ##Survival Rates
                 survivalRateTotal = (agentStats['total']['survivalCount'] / agentStats['total']['trainingCount']) * 100
                 agentStats['total']['survivalRates'].append(survivalRateTotal)
@@ -186,7 +186,7 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals):
                 survivalRatePhase = (agentStats['phase']['survivalCount'] / agentStats['phase']['trainingCount']) * 100
                 agentStats['phase']['survivalRates'].append(survivalRatePhase)
 
-                survivalRateInterval = (agentStats['interval'] / analysisIntervals) * 100
+                survivalRateInterval = (agentStats['interval']['survivalCount'] / analysisIntervals) * 100
                 agentStats['total']['survivalRatesInterval'].append(survivalRateInterval)
                 agentStats['phase']['survivalRatesInterval'].append(survivalRateInterval)
 
@@ -219,9 +219,7 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals):
 
                 agentStats['interval']['gameLength'] = 0
 
-    agent = game.agent
-
-    return agentStats['total'], agentStats['phase'], agent
+    return playerList, agentsStats
 
 def saveModel(model, directory, experiment):
     modelDirectory = os.path.join(directory, 'Model')
@@ -281,7 +279,7 @@ def loadMetadata(directory, experiment = None, phase = None):
 
     return metadata
 
-def saveJSON(qTable, directory, experimentNo):
+def saveQTable(qTable, directory, experimentNo):
     tableDirectory = os.path.join(directory, 'Q-Tables')
     os.makedirs(tableDirectory, exist_ok=True)
 
@@ -292,7 +290,7 @@ def saveJSON(qTable, directory, experimentNo):
     with open(filepath, 'w') as file:
         json.dump(qTableSave, file)
 
-def loadJSON(directory, experiment):
+def loadQTable(directory, experiment):
     tableDirectory = os.path.join(directory, 'Q-Tables')
     filepath = os.path.join(tableDirectory, f'experiment_{experiment}.json')
 
@@ -525,18 +523,21 @@ def writeFile(directory, filename, gameStats, lrParams, gameProperties, agent):
 
     print(f"Experiment results saved as {filename}")
 
-def saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory):
-    ##Specify folder, create it if doesn't exist
-    experimentFolder = f"experiment_{experiment}"
-    folderPath = os.path.join(directory, experimentFolder)
-    os.makedirs(folderPath, exist_ok = True)
+def saveExperimentFolder(agent, experiment, phase, agentStats, gameProperties):
+    global directory
 
-    ##Save the log files of the phases and the entire training.
-    filenameTotal = f"experiment_{experiment}.txt"
-    filenamePhase = f"phase_{phase}.txt"
+    if isinstance(agent, AgentQ):
+        agentTypeDirectory = "Q"
 
-    writeFile(folderPath, filenameTotal, gameStatsTotal, lrParams, gameProperties, agent)
-    writeFile(folderPath, filenamePhase, gameStatsPhase, lrParams, gameProperties, agent)
+    elif isinstance(agent, AgentDQN):
+        agentTypeDirectory = "DQN"
+
+    ##Store the folder in the correct location (Depending on Q/DQN)
+    agentFolder = os.path.join(directory, agentTypeDirectory, f"experiment_{experiment}", f"agent_{agent.playerID}")
+    os.makedirs(agentFolder, exist_ok=True)
+
+    writeFile(agentFolder, f"experiment_{experiment}_agent_{agent.playerID}.txt", agentStats['total'], agent.lrParameters, gameProperties, agent)
+    writeFile(agentFolder, f"phase_{phase}_agent_{agent.playerID}.txt", agentStats['phase'], agent.lrParameters, gameProperties, agent)
 
     ##Plot the survival rates for both the phase and total training
     plotSurvivalRate(gameStatsTotal, intervals, experiment, folderPath)
@@ -551,30 +552,14 @@ def saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrPa
     plotAverageGameLength(gameStatsPhase, intervals, experiment, folderPath, phase)
     
     ##Save the Q-Table, and the Metadata
-    saveJSON(agent.qTable, folderPath, experiment)
+    saveQTable(agent.qTable, folderPath, experiment)
     saveMetadata(gameStatsTotal, folderPath, experiment = experiment)
     saveMetadata(gameStatsPhase, folderPath, phase = phase)
 
-def determinePlayerTypes(phase):
-    ##Pass array of players with their respective types:
-    ## Human            - 0
-    ## RandomBot        - 1
-    ## LowestValueBot   - 2
-    ## Q Agent          - 3
-    ## DQN Agent        - 4
-
-    if phase == "A":
-        playerTypes = [3, 1]
-
-    elif phase == "B":
-        playerTypes = [3, 2]
-
-    return playerTypes
-
 def agentTraining(playerTypes, gameProperties, intervals, trainingIterations):
     playerList, metadataList = createPlayers(playerTypes, True)
+    playerList, agentsStats = runExperiment(playerList, metadataList, gameProperties, intervals, trainingIterations)
 
-    gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
     saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory)
 
 experiment = '1'
@@ -590,7 +575,8 @@ lrParams = {
     "gamma" : 0,
     "batchSize" : 128,
     "inputSize" : 1374,
-    "outputSize" : 506
+    "outputSize" : 506,
+    "learningIntervals" : 500
 }
 
 gameProperties = {
