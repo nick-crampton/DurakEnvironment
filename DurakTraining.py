@@ -1,49 +1,78 @@
 from durakNew.game import Game
+from durakNew.playerTypes.agent import Agent
 from durakNew.playerTypes.agentQ import AgentQ
 from durakNew.playerTypes.DQN.agentDQN import AgentDQN
 from durakNew.playerTypes.DQN.replayBuffer import ReplayBuffer
+from durakNew.playerTypes.DQN.training import DQN
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.lowestValueBot import LowestValueBot
+
 import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-def createPlayers(playerTypes, qTable = None, training = True):
+def createPlayers(playerTypes, training):
+    global directory
+    
     playerList = []
-        
-    for i, playerType in enumerate(playerTypes):
-        
-        if playerType == 0:
-            ##Create HumanPlayer
-            newPlayer = HumanPlayer([], i, None)
-            pass
-        
-        elif playerType == 1:
-            ##Create RandomBot
-            newPlayer = RandomBot([], i,  None)
-            pass
-        
-        elif playerType == 2:
-            ##Create LowestValueBot
-            newPlayer = LowestValueBot([], i, None)
-            pass
-        
-        elif playerType == 3:
-            ##Create Q-Learning Agent
-            newPlayer = AgentQ([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], qTable = None, isTraining = training)
-            pass
+    metadataList = []
 
-        elif playerType == 4:
-            ##Create DQN Agent
-            newPlayer = AgentDQN([], i, None, learningRate = lrParams["learningRate"], discount = lrParams["discount"], epsilon = lrParams["epsilon"], gamma = lrParams["gamma"])
+    if not (2 <= len(playerTypes) <= 6):
+        raise ValueError("Player count must be between 2 - 6!")
+    
+    for i, player in enumerate(playerTypes):
+        if isinstance(player, int):
+
+            if player == 0:
+                newPlayer = HumanPlayer([], i, None)
+                metadataList.append(None)
+
+            elif player == 1:
+                newPlayer = RandomBot([], i, None)
+                metadataList.append(None)
+            
+            elif player == 2:
+                newPlayer = LowestValueBot([], i, None)
+                metadataList.append(None)
+
+        elif isinstance(player, dict):
+            experimentFolder = f"experiment_{experiment}"
+            folderDirectory = os.path.join(directory, experimentFolder)
+            
+            if player["type"] == 3:
+                qTable = loadJSON(folderDirectory, experiment)
+                if qTable is not None:
+                    totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
+                    phaseMetadata = loadMetadata(folderDirectory, phase = phase)
+                    
+                    metadataList.append((totalMetadata, phaseMetadata))
+                
+                else:
+                    metadataList.append(None)
+
+                newPlayer = AgentQ([], i, None, player['parameters'], qTable, training)
+
+            elif player["type"] == 4:
+                model = loadModel(lrParams['inputSize'], lrParams['outputSize'])
+                replayBuffer = loadReplayBuffer(folderDirectory)
+                if model is not None or replayBuffer is not None:
+                    totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
+                    phaseMetadata = loadMetadata(folderDirectory, phase = phase)
+
+                    metadataList.append((totalMetadata, phaseMetadata))
+                
+                else:
+                    metadataList.append(None)
+
+                newPlayer = AgentDQN([], i, None, player['parameters'], model, replayBuffer)
 
         playerList.append(newPlayer)
-
-    return playerList
-
+    
+    return playerList, metadataList 
+                
 def playGame(playerTypes, gameProperties, directory = None, experiment = None):
    
     if experiment is not None:
@@ -60,181 +89,165 @@ def playGame(playerTypes, gameProperties, directory = None, experiment = None):
     game = Game(playerList, gameProperties = gameProperties)
     game.newGame()
 
-def runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, batchSize = None, trainingIntervals = None, metadataTotal = None, metadataPhase = None):
+def runExperiment(playerList, metadataList, gameProperties, analysisIntervals):
     
-    if metadataTotal is None:
-        gameStatsTotal = {
-        'trainingCount' : 0,
-        'survivalCount': 0,
-        'gameLength': 0,
-        'durakCount' : 0,
-        'totalReward': 0,
-        'averageReward': [],
-        'averageRewardInterval': [],
-        'survivalRates': [],
-        'survivalRatesInterval' : [],
-        'averageGameLength' : [],
-        'averageGameLengthInterval' : []
-        }
+    agentsStats = [{'total': None, 'phase': None, 'interval': {'survivalCount': 0, 'totalReward': 0, 'gameLength': 0}} for i in playerList]
+    
+    for i, (agent, metadata) in enumerate(zip(playerList, metadataList)):
 
-        gameStatsPhase = {
-        'trainingCount' : 0,
-        'survivalCount': 0,
-        'gameLength': 0,
-        'durakCount' : 0,
-        'totalReward': 0,
-        'averageReward': [],
-        'averageRewardInterval': [],
-        'survivalRates': [],
-        'survivalRatesInterval' : [],
-        'averageGameLength' : [],
-        'averageGameLengthInterval' : []
-        }
+        if metadata is None or metadata[0] is None:
+            agentsStats[i]['total'] = {
+            'trainingCount' : 0,
+            'survivalCount': 0,
+            'gameLength': 0,
+            'durakCount' : 0,
+            'totalReward': 0,
+            'averageReward': [],
+            'averageRewardInterval': [],
+            'survivalRates': [],
+            'survivalRatesInterval' : [],
+            'averageGameLength' : [],
+            'averageGameLengthInterval' : []
+            }
 
-    elif metadataPhase is None:
-        gameStatsTotal = metadataTotal
+        else:
+            agentsStats[i]['total'] = metadata[0]
 
-        gameStatsPhase = {
-        'trainingCount' : 0,
-        'survivalCount': 0,
-        'gameLength': 0,
-        'durakCount' : 0,
-        'totalReward': 0,
-        'averageReward': [],
-        'averageRewardInterval': [],
-        'survivalRates': [],
-        'survivalRatesInterval' : [],
-        'averageGameLength' : [],
-        'averageGameLengthInterval' : []
-        }
+        if metadata is None or (len(metadata) > 1 and metadata[1] is None):
+            agentsStats[i]['phase'] = {
+                'trainingCount' : 0,
+                'survivalCount': 0,
+                'gameLength': 0,
+                'durakCount' : 0,
+                'totalReward': 0,
+                'averageReward': [],
+                'averageRewardInterval': [],
+                'survivalRates': [],
+                'survivalRatesInterval' : [],
+                'averageGameLength' : [],
+                'averageGameLengthInterval' : []
+            }
 
-    else:
-        gameStatsTotal = metadataTotal
-        gameStatsPhase = metadataPhase
-
-    survivalCountInterval = 0
-    totalRewardInterval = 0
-    gameLengthInterval = 0
-
+        else:
+            agentsStats[i]['phase'] = metadata[1] 
+    
     for i in range(trainingIterations):
         print(f"\nGame {i+1}")
 
-        game = Game(playerList, lrParams, gameProperties)
+        game = Game(playerList, gameProperties)
         game.newGame()
 
-        ##Add gameStats for an overall graph
-        gameStatsTotal['trainingCount'] += 1
-        gameStatsTotal['survivalCount'] += game.survivalCount
-        gameStatsTotal['durakCount'] += game.durakCount
-        gameStatsTotal['gameLength'] += game.gameLength
-        gameStatsTotal['totalReward'] += game.agent.totalReward
+        for j, agent in enumerate(playerList):
+            if isinstance(agent, Agent):
+            
+                agentStats['total'] = agentsStats[j]['total']
+                agentStats['phase'] = agentsStats[j]['phase']
+                analysisIntervals = agentsStats[j]['interval']
 
-        ##Add gameStats for a graph for just this stage of training
-        gameStatsPhase['trainingCount'] += 1
-        gameStatsPhase['survivalCount'] += game.survivalCount
-        gameStatsPhase['durakCount'] += game.durakCount
-        gameStatsPhase['gameLength'] += game.gameLength
-        gameStatsPhase['totalReward'] += game.agent.totalReward
- 
-        survivalCountInterval += game.survivalCount
-        gameLengthInterval += game.gameLength
-        totalRewardInterval += game.agent.totalReward
+                ##Add gameStats for an overall graph
+                agentStats['total']['trainingCount'] += 1
+                agentStats['total']['survivalCount'] += agent.survivalCount
+                agentStats['total']['durakCount'] += agent.durakCount
+                agentStats['total']['gameLength'] += game.gameLength
+                agentStats['total']['totalReward'] += agent.totalReward
 
-        print(f"\nReward accumulated in game is {game.agent.totalReward}")
-        game.agent.totalReward = 0
+                ##Add gameStats for a graph for just this stage of training
+                agentStats['phase']['trainingCount'] += 1
+                agentStats['phase']['survivalCount'] += agent.survivalCount
+                agentStats['phase']['durakCount'] += agent.durakCount
+                agentStats['phase']['gameLength'] += game.gameLength
+                agentStats['phase']['totalReward'] += agent.totalReward
+        
+                analysisIntervals['survivalCount'] += agent.survivalCount
+                analysisIntervals['gameLength'] += game.gameLength
+                analysisIntervals['totalReward'] += agent.totalReward
+
+                agent.survivalCount = 0
+                agent.durakCount = 0
+                
+                print(f"\nReward accumulated in game is {game.agent.totalReward}")
+                agent.totalReward = 0
 
         if (i + 1) % trainingIntervals == 0:
-            print("Gameplay halted, neural network is training...")
+            print("Training neural networks")
             
-            if len(game.agent.replayBuffer) >= batchSize:
-                model = game.agent.trainNetwork(trainingIntervals)
-                saveModel(model, directory)
-        
-        if (i + 1) % intervals == 0 and i > 0:
-            ##Survival Rates
-            survivalRateTotal = (gameStatsTotal['survivalCount'] / gameStatsTotal['trainingCount']) * 100
-            gameStatsTotal['survivalRates'].append(survivalRateTotal)
-
-            survivalRatePhase = (gameStatsPhase['survivalCount'] / gameStatsPhase['trainingCount']) * 100
-            gameStatsPhase['survivalRates'].append(survivalRatePhase)
-
-            survivalRateInterval = (survivalCountInterval / intervals) * 100
-            gameStatsTotal['survivalRatesInterval'].append(survivalRateInterval)
-            gameStatsPhase['survivalRatesInterval'].append(survivalRateInterval)
-
-            survivalCountInterval = 0
-
-            ##Average Reward
-            averageRewardTotal = (gameStatsTotal['totalReward'] / gameStatsTotal['trainingCount'])
-            gameStatsTotal['averageReward'].append(averageRewardTotal)
-
-            averageRewardPhase = (gameStatsPhase['totalReward'] / gameStatsPhase['trainingCount'])
-            gameStatsPhase['averageReward'].append(averageRewardPhase)
-
-            averageRewardInterval = (totalRewardInterval / intervals)
+            for agent in playerList:
+                
+                if isinstance(agent, AgentDQN) and len(agent.replayBuffer) >= agent.batchSize:
+                    agent.trainNetwork()
+                               
+        if (i + 1) % analysisIntervals == 0 and i > 0:
             
-            gameStatsTotal['averageRewardInterval'].append(averageRewardInterval)
-            gameStatsPhase['averageRewardInterval'].append(averageRewardInterval)
+            for j, agentStats in enumerate(agentsStats):
+                ##Survival Rates
+                survivalRateTotal = (agentStats['total']['survivalCount'] / agentStats['total']['trainingCount']) * 100
+                agentStats['total']['survivalRates'].append(survivalRateTotal)
 
-            totalRewardInterval = 0
+                survivalRatePhase = (agentStats['phase']['survivalCount'] / agentStats['phase']['trainingCount']) * 100
+                agentStats['phase']['survivalRates'].append(survivalRatePhase)
 
-            ##Average Game Length
-            avgGameLengthTotal = (gameStatsTotal['gameLength'] / gameStatsTotal['trainingCount'])
-            gameStatsTotal['averageGameLength'].append(avgGameLengthTotal)
+                survivalRateInterval = (agentStats['interval'] / analysisIntervals) * 100
+                agentStats['total']['survivalRatesInterval'].append(survivalRateInterval)
+                agentStats['phase']['survivalRatesInterval'].append(survivalRateInterval)
 
-            avgGameLengthPhase = (gameStatsPhase['gameLength'] / gameStatsPhase['trainingCount'])
-            gameStatsPhase['averageGameLength'].append(avgGameLengthPhase)
+                agentStats['interval']['survivalCount'] = 0
 
-            avgGameLengthInterval = (gameLengthInterval / intervals)
-            gameStatsTotal['averageGameLengthInterval'].append(avgGameLengthInterval)
-            gameStatsPhase['averageGameLengthInterval'].append(avgGameLengthInterval)
+                ##Average Reward
+                averageRewardTotal = (agentStats['total']['totalReward'] / agentStats['total']['trainingCount'])
+                agentStats['total']['averageReward'].append(averageRewardTotal)
 
-            gameLengthInterval = 0
+                averageRewardPhase = (agentStats['phase']['totalReward'] / agentStats['phase']['trainingCount'])
+                agentStats['phase']['averageReward'].append(averageRewardPhase)
+
+                averageRewardInterval = (agentStats['interval']['totalReward'] / analysisIntervals)
+                
+                agentStats['total']['averageRewardInterval'].append(averageRewardInterval)
+                agentStats['phase']['averageRewardInterval'].append(averageRewardInterval)
+
+                agentStats['interval']['totalReward'] = 0
+
+                ##Average Game Length
+                avgGameLengthTotal = (agentStats['total']['gameLength'] / agentStats['total']['trainingCount'])
+                agentStats['total']['averageGameLength'].append(avgGameLengthTotal)
+
+                avgGameLengthPhase = (agentStats['phase']['gameLength'] / agentStats['phase']['trainingCount'])
+                agentStats['phase']['averageGameLength'].append(avgGameLengthPhase)
+
+                avgGameLengthInterval = (agentStats['interval']['gameLength'] / analysisIntervals)
+                agentStats['total']['averageGameLengthInterval'].append(avgGameLengthInterval)
+                agentStats['phase']['averageGameLengthInterval'].append(avgGameLengthInterval)
+
+                agentStats['interval']['gameLength'] = 0
 
     agent = game.agent
 
-    return gameStatsTotal, gameStatsPhase, agent
+    return agentStats['total'], agentStats['phase'], agent
 
-def saveModel(model, directory, experiment = None, phase = None):
+def saveModel(model, directory, experiment):
     modelDirectory = os.path.join(directory, 'Model')
-    os.makedirs(modelDirectory, exist_ok = True)
-
-    if experiment is not None and phase is not None:
-        filename = f"Model_experiment_{experiment}_phase_{phase}.pth"
-    elif experiment is not None:
-        filename = f"Model_experiment_{experiment}.pth"
-    elif phase is not None:
-        filename = f"Model_phase_{phase}.pth"
-    else:
-        filename = "Model.pth"
+    os.makedirs(modelDirectory, exist_ok=True)
 
     filepath = os.path.join(modelDirectory, filename)
     torch.save(model.state_dict(), filepath)
     print(f"Model saved to {filepath}")
 
-def loadModel(model, directory, experiment = None, phase = None):
+def loadModel(directory, experiment, inputSize, outputSize):
     modelDirectory = os.path.join(directory, 'Model')
     
-    # Construct the filename in the same way as saveModel
-    if experiment is not None and phase is not None:
-        filename = f"Model_experiment_{experiment}_phase_{phase}.pth"
-    elif experiment is not None:
-        filename = f"Model_experiment_{experiment}.pth"
-    elif phase is not None:
-        filename = f"Model_phase_{phase}.pth"
-    else:
-        filename = "Model.pth"
-
+    filename = f"model_experiment_{experiment}.pth"
     filepath = os.path.join(modelDirectory, filename)
     
     if not os.path.isfile(filepath):
-        print(f"No model found at {filepath}. Please check your parameters or path.")
-        return None
+        print(f"No model found at {filepath}")
+        model = DQN(inputSize, outputSIze)
     
-    model.load_state_dict(torch.load(filepath, map_location=torch.device('cpu')))
-    print(f"Model loaded from {filepath}")
+    else:
+        model = DQN(inputSize, outputSize)
+        model.load_state_dict(torch.load(filepath, map_location=device))
+        print(f"Model loaded from {filepath}")
     
-    return model    
+    model.to(device)
+    return model
 
 def saveMetadata(metadata, directory, experiment = None, phase = None):
     metadataDirectory = os.path.join(directory, 'Metadata')
@@ -284,7 +297,7 @@ def loadJSON(directory, experiment):
     filepath = os.path.join(tableDirectory, f'experiment_{experiment}.json')
 
     if not os.path.exists(filepath):
-        print(f"No Q-table found at {filepath}")
+        print(f"No Q-table found at {filepath}, creating a new one")
         return None
     
     with open(filepath, 'r') as file:
@@ -292,6 +305,41 @@ def loadJSON(directory, experiment):
 
     qTable = {eval(key): value for key, value in qTableStrKeys.items()}
     return qTable
+
+def saveReplayBuffer(replayBuffer, directory, experiment):
+    bufferDirectory = os.path.join(directory, 'Replay Buffers')
+    os.makedirs(bufferDirectory, exist_ok = True)
+
+    filepath = os.path.join(bufferDirectory, f'experiment_{experiment}.json')
+    
+    data = {
+        "capacity" : replayBuffer.capacity,
+        "buffer" : replayBuffer.buffer,
+        "position" : replayBuffer.position
+    }
+
+    with open(filepath, "w") as f:
+        json.dump(data, f)
+
+    print(f"Replay buffer saved to {filepath}")
+
+def loadReplayBuffer(directory, experiment):
+    bufferDirectory = os.path.join(directory, 'Replay Buffers')
+    filepath = os.path.join(bufferDirectory, f"experiment_{experiment}.json")
+    
+    if not os.path.exists(filepath):
+        print(f"No replay buffer found at {filepath}. Starting a new buffer.")
+        return None
+    
+    with open(filepath, "r") as f:
+        data = json.load(f)
+    
+    replayBuffer = ReplayBuffer(data["capacity"])
+    replayBuffer.buffer = data["buffer"]
+    replayBuffer.position = data["position"]
+    
+    print(f"Replay buffer loaded from {filepath}")
+    return replayBuffer
 
 def plotSurvivalRate(gameStats, interval, experiment, directory, phase = None):
 
@@ -434,7 +482,6 @@ def saveExperimentResults(experimentNo, gameStats, lrParams, gameProperties, age
         for key, value in gameProperties.items():
             file.write(f"{key}: {value}\n")
             
-
         file.write("\nState-Action Pairs, their Q-Values, and the visitation tally:\n")
 
         sortedQTable = sorted(agent.qTable.keys(), key=lambda k: agent.stateActionCounter.get(k, 0), reverse=True)
@@ -524,32 +571,10 @@ def determinePlayerTypes(phase):
 
     return playerTypes
 
-def agentTraining(experiment, phase, playerTypes, lrParams, gameProperties, intervals, trainingIterations):
-    
-    ##Results are stored in experiments folder
-    directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
+def agentTraining(playerTypes, gameProperties, intervals, trainingIterations):
+    playerList, metadataList = createPlayers(playerTypes, True)
 
-    ##Loads the qTable of the agent, if it exists
-    experimentFolder = f"experiment_{experiment}"
-    folderDirectory = os.path.join(directory, experimentFolder)
-
-    if 3 in playerTypes:
-        qTable = loadJSON(folderDirectory, experiment)
-
-        if qTable is not None:
-            totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
-            phaseMetadata = loadMetadata(folderDirectory, phase = phase)
-            playerList = createPlayers(playerTypes, qTable)
-            gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
-
-        else:
-            playerList = createPlayers(playerTypes)
-            gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals)
-    
-    elif 4 in playerTypes:
-        model = loadModel(folderDirectory, experiment)
-
-
+    gameStatsTotal, gameStatsPhase, agent = runExperiment(trainingIterations, playerList, lrParams, gameProperties, intervals, totalMetadata, phaseMetadata)
     saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory)
 
 experiment = '1'
@@ -574,10 +599,28 @@ gameProperties = {
     "printGameplay" : True
 }
 
-##Phases:
-## A - RandomBot Training
-## B - LowestValueBot Training
+
+
+##Results are stored in experiments folder
+directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
+
+##Player Types Are:
+    ## Human            - 0
+    ## RandomBot        - 1
+    ## LowestValueBot   - 2
+    ## Q Agent          - 3
+    ## DQN Agent        - 4
+playerTypes = [
+    2, 
+    {"type" : 4, "experiment" : "DQN1", "phase" : "A", 'parameters': lrParams}
+]
+
+
+##Phase Codes:
+## A - 2P RandomBot Training
+## B - 2P LowestValueBot Training
 ## C - 3 Player Matches
+
 
 ##agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
 

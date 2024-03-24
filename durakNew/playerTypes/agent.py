@@ -16,6 +16,9 @@ class Agent(Player):
         self.lastReward = None
         self.totalReward = 0
 
+        self.survivalCount = 0
+        self.durakCount = 0
+
     def averageHand(self):
             
         if not self.hand:

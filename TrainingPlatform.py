@@ -118,10 +118,3 @@ directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
     ## DQN Agent        - 4
 playerTypes = [2, 3]
 
-modelNames = {
-    3 : "init"
-}
-
-modelPhaseMapping = {
-    "init" : "0"
-}

@@ -8,19 +8,14 @@ from durakNew.deck import Deck
 import random
 
 class Game:
-    def __init__(self, playerList, lrParams = None, gameProperties = None):
+    def __init__(self, playerList, gameProperties):
         self.startPlayer = 0
         self.deck = None
 
         self.playerList = playerList
         self.gamestate = GameState()
 
-        self.lrParams = lrParams if not None else {}
-        self.gameProperties = gameProperties if not None else {}
-
-        ##Track Agent performance
-        self.survivalCount = 0
-        self.durakCount = 0
+        self.gameProperties = gameProperties
         self.gameLength = 0
 
         self.agent = None
