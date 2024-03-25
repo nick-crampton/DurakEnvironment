@@ -58,13 +58,18 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     loss.backward()
     optimizer.step()
 
+    return loss.item()
+
 def startTraining(model, replayBuffer, batchSize, inputSize, outputSize, gamma, trainingIterations):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DQN(inputSize= inputSize, outputSize=outputSize).to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.01)
 
-    for i in range(trainingIterations):
-        trainNetwork(model, replayBuffer, batchSize, optimizer, gamma)
+    modelLosses = []
 
-    return model
+    for i in range(trainingIterations):
+        loss = trainNetwork(model, replayBuffer, batchSize, optimizer, gamma)
+        modelLosses.append(loss)    
+
+    return model, modelLosses
 

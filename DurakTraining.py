@@ -511,15 +511,21 @@ def writeFile(directory, filename, gameStats, lrParams, gameProperties, agent):
 
         for key, value in gameProperties.items():
             file.write(f"{key}: {value}\n")
-            
-        file.write("\nState-Action Pairs, their Q-Values, and the visitation tally:\n")
 
-        sortedQTable = sorted(agent.qTable.keys(), key=lambda k: agent.stateActionCounter.get(k, 0), reverse=True)
-        for key in sortedQTable:
-            value = agent.qTable[key]
-            count = agent.stateActionCounter.get(key, 0)
-            
-            file.write(f"{key}: {value}, Tally {count}\n")
+        if isinstance(agent, AgentQ):    
+            file.write("\nState-Action Pairs, their Q-Values, and the visitation tally:\n")
+
+            sortedQTable = sorted(agent.qTable.keys(), key=lambda k: agent.stateActionCounter.get(k, 0), reverse=True)
+            for key in sortedQTable:
+                value = agent.qTable[key]
+                count = agent.stateActionCounter.get(key, 0)
+                
+                file.write(f"{key}: {value}, Tally {count}\n")
+        
+        elif isinstance(agent, AgentDQN):
+            file.write("\nModel Loss:\n")
+            for i, loss in enumerate(agent.modelLosses):
+                file.write(f"Training episode {i} - Loss: {loss}\n")
 
     print(f"Experiment results saved as {filename}")
 
@@ -540,27 +546,40 @@ def saveExperimentFolder(agent, experiment, phase, agentStats, gameProperties):
     writeFile(agentFolder, f"phase_{phase}_agent_{agent.playerID}.txt", agentStats['phase'], agent.lrParameters, gameProperties, agent)
 
     ##Plot the survival rates for both the phase and total training
-    plotSurvivalRate(gameStatsTotal, intervals, experiment, folderPath)
-    plotSurvivalRate(gameStatsPhase, intervals, experiment, folderPath, phase)
+    plotSurvivalRate(agentStats['total'], intervals, experiment, agentFolder)
+    plotSurvivalRate(agentStats['phase'], intervals, experiment, agentFolder, phase)
 
     ##Plot the average reward over time
-    plotAverageRewards(gameStatsTotal, intervals, experiment, folderPath)
-    plotAverageRewards(gameStatsPhase, intervals, experiment, folderPath, phase)
+    plotAverageRewards(agentStats['total'], intervals, experiment, agentFolder)
+    plotAverageRewards(agentStats['phase'], intervals, experiment, agentFolder, phase)
 
     ##Plot average game lengths
-    plotAverageGameLength(gameStatsTotal, intervals, experiment, folderPath)
-    plotAverageGameLength(gameStatsPhase, intervals, experiment, folderPath, phase)
+    plotAverageGameLength(agentStats['total'], intervals, experiment, agentFolder)
+    plotAverageGameLength(agentStats['phase'], intervals, experiment, agentFolder, phase)
     
-    ##Save the Q-Table, and the Metadata
-    saveQTable(agent.qTable, folderPath, experiment)
-    saveMetadata(gameStatsTotal, folderPath, experiment = experiment)
-    saveMetadata(gameStatsPhase, folderPath, phase = phase)
+    ##Save Metadata
+    saveMetadata(agentStats['total'], agentFolder, experiment = experiment)
+    saveMetadata(agentStats['phase'], agentFolder, phase = phase)
+
+    ##Save the Q-Table
+    if isinstance(agent, AgentQ):
+        saveQTable(agent.qTable, agentFolder, experiment)
+
+    elif isinstance(agent, AgentDQN):
+        saveModel(agent.model, agentFolder, experiment)
+        saveReplayBuffer(agent.replayBuffer, agentFolder, experiment)
 
 def agentTraining(playerTypes, gameProperties, intervals, trainingIterations):
     playerList, metadataList = createPlayers(playerTypes, True)
     playerList, agentsStats = runExperiment(playerList, metadataList, gameProperties, intervals, trainingIterations)
 
-    saveExperimentFolder(experiment, phase, gameStatsTotal, gameStatsPhase, lrParams, gameProperties, agent, directory)
+    for player, stats in zip(playerList, agentsStats):
+        if isinstance(player, Agent):
+            config = next(item for item in playerTypes if isinstance(item, dict) and item.get('type') == 3 or item.get('type') == 4)
+            experiment = config['experiment']
+            phase = config['phase']
+            
+            saveExperimentFolder(player, experiment, phase, stats, gameProperties)
 
 experiment = '1'
 phase = 'B'
@@ -585,8 +604,6 @@ gameProperties = {
     "printGameplay" : True
 }
 
-
-
 ##Results are stored in experiments folder
 directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
 
@@ -607,7 +624,6 @@ playerTypes = [
 ## B - 2P LowestValueBot Training
 ## C - 3 Player Matches
 
+agentTraining(playerTypes, gameProperties, intervals, trainingIterations)
 
-##agentTraining(experiment, phase, lrParams, gameProperties, intervals, trainingIterations)
-
-playGame([3, 1], gameProperties)
+##playGame([3, 1], gameProperties)

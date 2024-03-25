@@ -21,6 +21,8 @@ class AgentDQN(Agent):
         self.inputSize = lrParameters['inputSize']
         self.outputSize = lrParameters['outputSize']
         self.trainingIntervals = lrParameters['trainingIntervals']
+
+        self.modelLosses = []
         
     
     def encodeCard(self, card):
@@ -253,5 +255,6 @@ class AgentDQN(Agent):
         return action
     
     def trainNetwork(self, iterations):
-        model = Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)
+        model, modelLosses = Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)
         self.model = model
+        self.modelLosses.extend(modelLosses)
