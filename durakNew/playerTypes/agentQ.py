@@ -1,5 +1,5 @@
 from durakNew.player import Player
-from durakNew.playerTypes import agent
+from durakNew.playerTypes.agent import Agent
 from durakNew.card import Card
 from durakNew.utils.rankList import rankList
 from durakNew.utils.suitList import suitList 

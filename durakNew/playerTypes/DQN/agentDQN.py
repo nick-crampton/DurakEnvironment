@@ -14,13 +14,14 @@ class AgentDQN(Agent):
         super().__init__(hand, playerID, gamestate, lrParameters)
         self.model = model.to(Training.device)
         self.model.eval()
-        self.replayBuffer = replayBuffer if replayBuffer is not None else ReplayBuffer(self.batchSize)
 
         self.gamma = lrParameters['gamma']
         self.batchSize = lrParameters['batchSize']
         self.inputSize = lrParameters['inputSize']
         self.outputSize = lrParameters['outputSize']
-        self.trainingIntervals = lrParameters['trainingIntervals']
+        self.trainingIntervals = lrParameters['learningIntervals']
+
+        self.replayBuffer = replayBuffer if replayBuffer is not None else ReplayBuffer(self.batchSize)
 
         self.modelLosses = []
         
@@ -142,7 +143,36 @@ class AgentDQN(Agent):
 
         return state
     
+    def generateDQNLists(self, ):
+        ##Create 2 dictionaries, inverse of each other
+        actionToIndex = {}
+        indexToAction = {}
+
+        ##Skip and pickup actions
+        actionToIndex['-1'] = 0
+        indexToAction['0'] = -1
+        actionToIndex['-1'] = 1
+        indexToAction['1'] = -1
+
+        currentIndex = 2
+        
+        ##Attacks
+        for suit, suitIndex in suitList.items():
+            for rank, rankIndex in rankList:
+                ##Calculate index for current card
+                actionToIndex[(suit, rank)] = currentIndex
+                indexToAction[str(currentIndex)] = (suit, rank)
+
+                currentIndex += 1
+
+        
+
+                
+
+
+
     def dqnActionMapping(self, actionIndex, role):
+
         if actionIndex == 0 or actionIndex == 1:
             return -1
         
@@ -172,7 +202,7 @@ class AgentDQN(Agent):
                 if (totalDefenses + defensesForRank) > cardActionIndex:
                     defenseWithinRank = cardActionIndex - totalDefenses
 
-                    if defenseWithinRank < (len(rankList) - 1 - attackRank)
+                    if defenseWithinRank < (len(rankList) - 1 - attackRank):
 
                         defendSuit = attackSuit
                         defendRank = defenseWithinRank + 1 + attackRank

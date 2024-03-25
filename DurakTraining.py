@@ -39,6 +39,10 @@ def createPlayers(playerTypes, training):
                 metadataList.append(None)
 
         elif isinstance(player, dict):
+            experiment = player['experiment']
+            phase = player['phase']
+            parameters = player['parameters']
+            
             experimentFolder = f"experiment_{experiment}"
             folderDirectory = os.path.join(directory, experimentFolder)
             
@@ -53,11 +57,11 @@ def createPlayers(playerTypes, training):
                 else:
                     metadataList.append(None)
 
-                newPlayer = AgentQ([], i, None, player['parameters'], qTable, training)
+                newPlayer = AgentQ([], i, None, parameters, qTable, training)
 
-            elif player["type"] == 4:
-                model = loadModel(lrParams['inputSize'], lrParams['outputSize'])
-                replayBuffer = loadReplayBuffer(folderDirectory)
+            elif player["type"] == 4: 
+                model = loadModel(directory, experiment, parameters['inputSize'], parameters['outputSize'])
+                replayBuffer = loadReplayBuffer(folderDirectory, experiment)
                 if model is not None or replayBuffer is not None:
                     totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
                     phaseMetadata = loadMetadata(folderDirectory, phase = phase)
@@ -67,7 +71,7 @@ def createPlayers(playerTypes, training):
                 else:
                     metadataList.append(None)
 
-                newPlayer = AgentDQN([], i, None, player['parameters'], model, replayBuffer)
+                newPlayer = AgentDQN([], i, None, parameters, model, replayBuffer)
 
         playerList.append(newPlayer)
     
@@ -237,14 +241,13 @@ def loadModel(directory, experiment, inputSize, outputSize):
     
     if not os.path.isfile(filepath):
         print(f"No model found at {filepath}")
-        model = DQN(inputSize, outputSIze)
+        model = DQN(inputSize, outputSize)
     
     else:
         model = DQN(inputSize, outputSize)
         model.load_state_dict(torch.load(filepath, map_location=device))
         print(f"Model loaded from {filepath}")
     
-    model.to(device)
     return model
 
 def saveMetadata(metadata, directory, experiment = None, phase = None):
