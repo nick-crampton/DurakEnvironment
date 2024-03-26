@@ -13,7 +13,6 @@ class AgentQ(Agent):
         self.isTraining = isTraining
         self.stateActionCounter = {}
 
-
     def encodeCard(self, card):
         rankLow = ['6', '7', '8']
         rankMid = ['9', '10', 'Jack']

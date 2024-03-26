@@ -185,7 +185,7 @@ class AgentDQN(Agent):
                 else:
                     defensiveActionCounter += ((len(rankList) - i) + len(rankList))
 
-        if isinstance(action, -1): 
+        if isinstance(action, int): 
 
             if role == 0:
                 return 173
@@ -197,53 +197,43 @@ class AgentDQN(Agent):
         currentState = self.getStateRepresentation(playerList, role)
         stateTensor = Training.convertToTensor(currentState)
 
+        possibleMovesFlat = []
+        ##Flatten possibleMoves if agent is defending
+        if role == 1:
+            
+            undefended = self.gamestate.undefendedCards()
+            attackDefensePairs = []
+
+            for attackCard, defenses in zip(undefended, possibleMoves):
+
+                for d in defenses:
+
+                    if isinstance(d, Card):
+                        attackDefensePairs.append((d, attackCard))
+
+                    elif d == -1:
+                        attackDefensePairs.append(-1)
+
+            possibleMovesFlat = attackDefensePairs
+        
+        else:
+            possibleMovesFlat = possibleMoves
+
         with torch.no_grad():
             qValues = self.model(stateTensor)
 
         if np.random.rand() < self.epsilon:
-            action = random.choice(possibleMoves)
+            action = random.choice(possibleMovesFlat)
 
         else:
             qValues = qValues.cpu().numpy().squeeze()
             ##Gets the action indices for every possibleMove
-            actionIndices = [self.encodeAction(action, possibleMoves, role) for action in possibleMoves]
+            actionIndices = [self.encodeAction(action, role) for action in possibleMovesFlat]
             validQ = qValues[actionIndices]
             bestActionIndex = np.argmax(validQ)
-            
-            actionDecoded = self.dqnActionMapping(bestActionIndex, role)
 
-            if actionDecoded == -1:
-                action = -1
+            action = possibleMoves[bestActionIndex]
 
-            else:
-
-                for move in possibleMoves:
-
-                    if role == 0:
-                        suit = actionDecoded[0]
-                        rank = actionDecoded[1]
-
-                        if isinstance(move, Card):
-                            cardSuit = move.getSuit()
-                            cardRank = move.getRank()
-
-                            if cardSuit == suit and cardRank == rank:
-                                return move
-
-                    elif role == 1:
-                        defenseSuit = actionDecoded[0][0]
-                        defenseRank = actionDecoded[0][1]
-
-                        attackSuit = actionDecoded[1][0]
-                        attackRank = actionDecoded[1][1]
-
-                        if isinstance(move, tuple):
-                            attackCard = move[0]
-                            defenseCard = move[1]
-
-                            if (defenseCard.getSuit() == defenseSuit and defenseCard.getRank() == defenseRank) and (attackCard.getSuit() == attackSuit and attackCard.getRank() == attackRank):
-                                return move
-                        
         self.replayBuffer.storeExperience(self.lastState, self.lastAction, currentState, self.lastReward)
 
         self.lastState = currentState
