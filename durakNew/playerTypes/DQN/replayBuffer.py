@@ -7,7 +7,7 @@ class ReplayBuffer:
 
     def storeExperience(self, currentState, action, nextState, reward, gameCompletion = False):
         if len(self.buffer) < self.capacity:
-            self.append.buffer(None)
+            self.buffer.append(None)
         
         self.buffer[self.position] = (currentState, action, nextState, reward, gameCompletion)
         self.position = (self.position + 1) % self.capacity

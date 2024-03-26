@@ -19,16 +19,6 @@ class Agent(Player):
         self.survivalCount = 0
         self.durakCount = 0
 
-    def averageHand(self):
-            
-        if not self.hand:
-            return 0
-
-        totalEncodedValue = sum(self.encodeCard(card) for card in self.hand)
-        averageEncodedValue = totalEncodedValue / len(self.hand)
-
-        return averageEncodedValue
-    
     def ingameReward(self, before, after):
         avgDifference = after - before
 

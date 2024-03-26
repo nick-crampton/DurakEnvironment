@@ -20,12 +20,12 @@ class AgentDQN(Agent):
         self.inputSize = lrParameters['inputSize']
         self.outputSize = lrParameters['outputSize']
         self.trainingIntervals = lrParameters['learningIntervals']
+        self.bufferCapacity = lrParameters['bufferCapacity']
 
-        self.replayBuffer = replayBuffer if replayBuffer is not None else ReplayBuffer(self.batchSize)
+        self.replayBuffer = replayBuffer if replayBuffer is not None else ReplayBuffer(self.bufferCapacity)
 
         self.modelLosses = []
         
-    
     def encodeCard(self, card):
         encodedCard = [0] * 13
         
@@ -112,6 +112,24 @@ class AgentDQN(Agent):
 
         return handLengthEncoding
     
+    def averageHand(self):
+        if not self.hand:
+            return 0
+        
+        totalHandValue = 0
+        
+        for card in self.hand:
+            _, rankValue = card.getCardPower()
+            
+            if card.suit == self.gamestate.trumpSuit:
+                totalHandValue += (rankValue + len(rankList))
+            
+            else:
+                totalHandValue += rankValue
+
+        averageValue = totalHandValue / len(self.hand)
+        return averageValue
+
     def getStateRepresentation(self, playerList, role):
         state = []
         
@@ -193,6 +211,7 @@ class AgentDQN(Agent):
             elif role == 1:
                 return 172
 
+
     def chooseAction(self, possibleMoves, role, playerList):
         currentState = self.getStateRepresentation(playerList, role)
         stateTensor = Training.convertToTensor(currentState)
@@ -232,9 +251,10 @@ class AgentDQN(Agent):
             validQ = qValues[actionIndices]
             bestActionIndex = np.argmax(validQ)
 
-            action = possibleMoves[bestActionIndex]
+            action = possibleMovesFlat[bestActionIndex]
 
-        self.replayBuffer.storeExperience(self.lastState, self.lastAction, currentState, self.lastReward)
+        if (self.lastState is not None) and (self.lastAction is not None):
+            self.replayBuffer.storeExperience(self.lastState, self.lastAction, currentState, self.lastReward)
 
         self.lastState = currentState
         self.lastAction = action

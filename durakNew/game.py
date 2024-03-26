@@ -18,7 +18,6 @@ class Game:
         self.gameProperties = gameProperties
         self.gameLength = 0
 
-        self.agent = None
 
     def setCardCount(self):
         cardCount = len(self.playerList) * self.gamestate.initialHand + self.gamestate.maxTalon
@@ -58,15 +57,13 @@ class Game:
         
         if survivalCheck == False:
             reward = -1
-            self.durakCount += 1
+            agent.durakCount += 1
 
         elif survivalCheck == True:
             reward = 1
-            self.survivalCount += 1
+            agent.survivalCount += 1
 
         agent.receiveEndReward(reward)
-
-        self.agent = agent
 
     def newGame(self):
         
@@ -92,12 +89,13 @@ class Game:
         for player in self.playerList:
             player.gamestate = self.gamestate
         
-        agentIn = True
+        finishedAgentCount = 0
+        agentCount = sum(1 for player in self.playerList if isinstance(player, Agent))
         
-        roundCounter = 1
         finishedGamePlayers = []
+        roundCounter = 1
 
-        while len(self.playerList) > 1 and agentIn:
+        while len(self.playerList) > 1 and finishedAgentCount < agentCount:
             
             if self.gamestate.printGameplay:
                 print(f"\n----------------------------\nRound {roundCounter}")
@@ -114,12 +112,7 @@ class Game:
                     ##If agent survives, end game prematurely...
                     if isinstance(player, Agent):
                         self.rewards(player, True)
-                        
-                        if self.gamestate.printGameplay:
-                            print("\nAgent survives")
-                        
-                        agentIn = False
-                        break
+                        finishedAgentCount += 1
 
                 finishedGamePlayers.extend(finishedPlayers)       
             
@@ -129,9 +122,10 @@ class Game:
             print(f"\nGAME OVER. {self.playerList[0]} is the Durak.")
 
         ##If agent is Durak, they will be last player in playerlist
-        if isinstance(self.playerList[0], Agent):
+        if isinstance(self.playerList[0], Agent) and self.playerList[0] not in finishedGamePlayers:
             self.rewards(self.playerList[0], False)
-            
+            finishedAgentCount += 1
+
             if self.gamestate.printGameplay:
                 print("\nAgent is the Durak")
 

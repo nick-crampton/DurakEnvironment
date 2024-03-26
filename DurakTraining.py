@@ -229,7 +229,7 @@ def saveModel(model, directory, experiment):
     modelDirectory = os.path.join(directory, 'Model')
     os.makedirs(modelDirectory, exist_ok=True)
 
-    filepath = os.path.join(modelDirectory, filename)
+    filepath = os.path.join(modelDirectory, experiment)
     torch.save(model.state_dict(), filepath)
     print(f"Model saved to {filepath}")
 
@@ -598,7 +598,8 @@ lrParams = {
     "batchSize" : 128,
     "inputSize" : 1374,
     "outputSize" : 506,
-    "learningIntervals" : 500
+    "learningIntervals" : 500,
+    "bufferCapacity" : 10000
 }
 
 gameProperties = {

@@ -257,3 +257,13 @@ class AgentQ(Agent):
 
         return state
 
+    def averageHand(self):
+            
+        if not self.hand:
+            return 0
+
+        totalEncodedValue = sum(self.encodeCard(card) for card in self.hand)
+        averageEncodedValue = totalEncodedValue / len(self.hand)
+
+        return averageEncodedValue
+
