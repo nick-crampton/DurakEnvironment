@@ -143,89 +143,55 @@ class AgentDQN(Agent):
 
         return state
     
-    def generateDQNLists(self, ):
-        ##Create 2 dictionaries, inverse of each other
-        actionToIndex = {}
-        indexToAction = {}
+    def encodeAction(self, action, role):
 
-        ##Skip and pickup actions
-        actionToIndex['-1'] = 0
-        indexToAction['0'] = -1
-        actionToIndex['-1'] = 1
-        indexToAction['1'] = -1
-
-        currentIndex = 2
-        
-        ##Attacks
-        for suit, suitIndex in suitList.items():
-            for rank, rankIndex in rankList:
-                ##Calculate index for current card
-                actionToIndex[(suit, rank)] = currentIndex
-                indexToAction[str(currentIndex)] = (suit, rank)
-
-                currentIndex += 1
-
-        
-
-                
-
-
-
-    def dqnActionMapping(self, actionIndex, role):
-
-        if actionIndex == 0 or actionIndex == 1:
-            return -1
-        
-        elif role == 0 and actionIndex <= 37:
-            cardActionIndex = actionIndex - 2
-             
-            rankIndex = cardActionIndex % len(rankList)
-            suitIndex = cardActionIndex // len(rankList)
+        if isinstance(action, Card):
+            cardSuit = action.getSuit()
+            _, rankValue = action.getCardPower()
             
-            rankString = rankList[rankIndex][0]
-            suitString = getKeyFromValue(suitList, suitIndex)
-            
-            return (suitString, rankString)
+            if cardSuit == self.gamestate.trumpSuit:
+                actionIndex = len(rankList) + rankValue
+
+            else:
+                actionIndex = rankValue
+
+            return actionIndex
         
-        elif role == 1:
+        actionCounter = (len(rankList) * 2 - 1)
+        
+        if isinstance(action, tuple):
+            defensiveActionCounter = 0
 
-            cardActionIndex = actionIndex - 38
-            ##Determine attackCard Suit
-            attackSuit = cardActionIndex // 117
-
-            totalDefenses = 0
+            attackCard, defenseCard = action
+            _, attackRank = attackCard.getCardPower()
+            _, defenseRank = defenseCard.getCardPower()
             
-            for attackRank in range(len(rankList)):
-                
-                defensesForRank = (len(rankList) - 1 - attackRank) + len(rankList)
+            attackSuit = attackCard.getSuit()
+            defenseSuit = defenseCard.getSuit()
+            
+            for i in range(len(rankList)):
 
-                if (totalDefenses + defensesForRank) > cardActionIndex:
-                    defenseWithinRank = cardActionIndex - totalDefenses
+                if i == attackRank:
+                    powerDifference = defenseRank - attackRank
+                    
+                    if attackSuit != defenseSuit:
+                        actionIndex = actionCounter + defensiveActionCounter + powerDifference
 
-                    if defenseWithinRank < (len(rankList) - 1 - attackRank):
+                    elif attackSuit == defenseSuit:
+                        actionIndex = actionCounter + defensiveActionCounter + (len(rankList) + powerDifference)
 
-                        defendSuit = attackSuit
-                        defendRank = defenseWithinRank + 1 + attackRank
+                    return actionIndex
 
-                    else:
-                        defendSuit = self.gamestate.TrumpSuit
-                        defendRank = defenseWithinRank - (len(rankList) - 1 - attackRank) 
+                else:
+                    defensiveActionCounter += ((len(rankList) - i) + len(rankList))
 
-                    attackSuitString = getKeyFromValue(suitList, attackSuit)
-                    defendSuitString = getKeyFromValue(suitList, defendSuit)
+        if isinstance(action, -1): 
 
-                    attackRankString = rankList[attackRank][0]
-                    defendRankString = rankList[defendRank][0]
-
-                    attackCard = (attackSuitString, attackRankString)
-                    defenseCard = (defendSuitString, defendRankString)
-
-                    return (attackCard, defenseCard)
-
-                totalDefenses += defensesForRank
-
-        print("No action was found in the mapping")
-        return None
+            if role == 0:
+                return 173
+            
+            elif role == 1:
+                return 172
 
     def chooseAction(self, possibleMoves, role, playerList):
         currentState = self.getStateRepresentation(playerList, role)
@@ -239,6 +205,7 @@ class AgentDQN(Agent):
 
         else:
             qValues = qValues.cpu().numpy().squeeze()
+            ##Gets the action indices for every possibleMove
             actionIndices = [self.encodeAction(action, possibleMoves, role) for action in possibleMoves]
             validQ = qValues[actionIndices]
             bestActionIndex = np.argmax(validQ)
