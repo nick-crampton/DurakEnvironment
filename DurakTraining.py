@@ -143,10 +143,9 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
 
         for j, agent in enumerate(playerList):
             if isinstance(agent, Agent):
-            
-                agentStats['total'] = agentsStats[j]['total']
-                agentStats['phase'] = agentsStats[j]['phase']
-                analysisIntervals = agentsStats[j]['interval']
+
+                agentStats = agentsStats[j]
+                intervalAnalysis = agentsStats[j]['interval']
 
                 ##Add gameStats for an overall graph
                 agentStats['total']['trainingCount'] += 1
@@ -162,14 +161,14 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
                 agentStats['phase']['gameLength'] += game.gameLength
                 agentStats['phase']['totalReward'] += agent.totalReward
         
-                analysisIntervals['survivalCount'] += agent.survivalCount
-                analysisIntervals['gameLength'] += game.gameLength
-                analysisIntervals['totalReward'] += agent.totalReward
+                intervalAnalysis['survivalCount'] += agent.survivalCount
+                intervalAnalysis['gameLength'] += game.gameLength
+                intervalAnalysis['totalReward'] += agent.totalReward
 
                 agent.survivalCount = 0
                 agent.durakCount = 0
                 
-                print(f"\nReward accumulated in game is {game.agent.totalReward}")
+                print(f"\nReward accumulated in game is {agent.totalReward}")
                 agent.totalReward = 0
 
         for agent in playerList:
@@ -628,6 +627,6 @@ playerTypes = [
 ## B - 2P LowestValueBot Training
 ## C - 3 Player Matches
 
-agentTraining(playerTypes, gameProperties, intervals, trainingIterations)
+##agentTraining(playerTypes, gameProperties, intervals, trainingIterations)
 
-##playGame([3, 1], gameProperties)
+playGame([2, 1], gameProperties)

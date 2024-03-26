@@ -130,6 +130,15 @@ class AgentDQN(Agent):
         averageValue = totalHandValue / len(self.hand)
         return averageValue
 
+    def receiveEndReward(self, reward):
+        self.lastReward = reward
+        self.totalReward += reward
+
+        self.replayBuffer.storeExperience(self.lastState, self.lastAction, None, reward, True)
+
+        self.lastState = None
+        self.lastAction = None
+
     def getStateRepresentation(self, playerList, role):
         state = []
         
@@ -210,7 +219,6 @@ class AgentDQN(Agent):
             
             elif role == 1:
                 return 172
-
 
     def chooseAction(self, possibleMoves, role, playerList):
         currentState = self.getStateRepresentation(playerList, role)
