@@ -88,9 +88,9 @@ def playGame(playerTypes, gameProperties, directory = None, experiment = None):
         playerList = createPlayers(playerTypes, qTable, False)
     
     else:
-        playerList = createPlayers(playerTypes)
+        playerList, _ = createPlayers(playerTypes, False)
 
-    game = Game(playerList, gameProperties = gameProperties)
+    game = Game(playerList, gameProperties)
     game.newGame()
 
 def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, trainingIterations):
@@ -137,6 +137,8 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
     
     for i in range(trainingIterations):
         print(f"\nGame {i+1}")
+
+        playerList = sorted(playerList, key=lambda player: player.playerID)
 
         game = Game(playerList, gameProperties)
         game.newGame()
@@ -583,10 +585,8 @@ def agentTraining(playerTypes, gameProperties, intervals, trainingIterations):
             
             saveExperimentFolder(player, experiment, phase, stats, gameProperties)
 
-experiment = '1'
-phase = 'B'
 intervals = 500
-trainingIterations = 50000
+trainingIterations = 10000
 
 ##RL Agent parameters
 lrParams = {
@@ -596,15 +596,16 @@ lrParams = {
     "gamma" : 0,
     "batchSize" : 128,
     "inputSize" : 1374,
-    "outputSize" : 506,
-    "learningIntervals" : 500,
-    "bufferCapacity" : 10000
+    "outputSize" : 174,
+    "learningIntervals" : 1000,
+    "bufferCapacity" : 200000,
+    "trainingIterations" : 200
 }
 
 gameProperties = {
     "handCount" : 6,
     "talonCount" : 36,
-    "printGameplay" : True
+    "printGameplay" : False
 }
 
 ##Results are stored in experiments folder
@@ -618,8 +619,10 @@ directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
     ## DQN Agent        - 4
 playerTypes = [
     2, 
-    {"type" : 4, "experiment" : "DQN1", "phase" : "A", 'parameters': lrParams}
+    {"type" : 3, "experiment" : "1S", "phase" : "LV_Bot", 'parameters': lrParams}
 ]
+
+##{"type" : 4, "experiment" : "1", "phase" : "A", 'parameters': lrParams},
 
 
 ##Phase Codes:
@@ -627,6 +630,6 @@ playerTypes = [
 ## B - 2P LowestValueBot Training
 ## C - 3 Player Matches
 
-##agentTraining(playerTypes, gameProperties, intervals, trainingIterations)
+agentTraining(playerTypes, gameProperties, intervals, trainingIterations)
 
-playGame([2, 1], gameProperties)
+##playGame([2, 2], gameProperties)

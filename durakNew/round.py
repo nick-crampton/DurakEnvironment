@@ -49,6 +49,10 @@ class Round:
         defender = self.getPlayerByID(defenderID)
         defender.setRole(1)
 
+        for player in self.playerList:
+            if player.getRole() == 2:
+               print("Ping!!!")
+
         ##Assign other attacker if more than 2 players
         if numPlayers > 2:
             otherAttackerID = self.getNextID(defenderID)
@@ -305,7 +309,6 @@ class Round:
                                     defenseSuccess = True
                                     break
                                 
-
             else:
                 defenderID = self.getNextID(self.attackingPlayerID)
                 defender = self.getPlayerByID(defenderID)

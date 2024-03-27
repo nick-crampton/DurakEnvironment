@@ -12,7 +12,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def convertToTensor(state):
 
     stateTensor = torch.tensor(state, dtype = torch.float)
-    print(len(stateTensor))
     return stateTensor
 
 class DQN(nn.Module):

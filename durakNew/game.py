@@ -66,7 +66,6 @@ class Game:
         agent.receiveEndReward(reward)
 
     def newGame(self):
-        
         ##Generate and shuffle new deck
         self.deck = Deck.generateDeck()
 
@@ -95,7 +94,7 @@ class Game:
         finishedGamePlayers = []
         roundCounter = 1
 
-        while len(self.playerList) > 1 and finishedAgentCount < agentCount:
+        while len(self.playerList) > 1:
             
             if self.gamestate.printGameplay:
                 print(f"\n----------------------------\nRound {roundCounter}")
@@ -130,5 +129,4 @@ class Game:
                 print("\nAgent is the Durak")
 
         ##Once game is finished, add all players back into playerList for next game...
-        self.playerList.extend(finishedGamePlayers)
-
+        self.playerList.extend(finishedGamePlayers)   

@@ -21,6 +21,7 @@ class AgentDQN(Agent):
         self.outputSize = lrParameters['outputSize']
         self.trainingIntervals = lrParameters['learningIntervals']
         self.bufferCapacity = lrParameters['bufferCapacity']
+        self.trainingIterations = lrParameters['trainingIterations']
 
         self.replayBuffer = replayBuffer if replayBuffer is not None else ReplayBuffer(self.bufferCapacity)
 
@@ -269,7 +270,7 @@ class AgentDQN(Agent):
 
         return action
     
-    def trainNetwork(self, iterations):
-        model, modelLosses = Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma)
+    def trainNetwork(self):
+        model, modelLosses = Training.startTraining(self.model, self.replayBuffer, self.batchSize, self.inputSize, self.outputSize, self.gamma, self.trainingIterations)
         self.model = model
         self.modelLosses.extend(modelLosses)
