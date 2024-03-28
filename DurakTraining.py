@@ -44,13 +44,15 @@ def createPlayers(playerTypes, training):
             parameters = player['parameters']
             
             experimentFolder = f"experiment_{experiment}"
-            folderDirectory = os.path.join(directory, experimentFolder)
             
-            if player["type"] == 3:
-                qTable = loadQTable(folderDirectory, experiment)
+            if player["type"] == 3: 
+                agentTypeDirectory = "Q"
+                agentFolder = os.path.join(directory, agentTypeDirectory, experimentFolder)
+
+                qTable = loadQTable(agentFolder, experiment)
                 if qTable is not None:
-                    totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
-                    phaseMetadata = loadMetadata(folderDirectory, phase = phase)
+                    totalMetadata = loadMetadata(agentFolder, experiment = experiment)
+                    phaseMetadata = loadMetadata(agentFolder, phase = phase)
                     
                     metadataList.append((totalMetadata, phaseMetadata))
                 
@@ -60,11 +62,14 @@ def createPlayers(playerTypes, training):
                 newPlayer = AgentQ([], i, None, parameters, qTable, training)
 
             elif player["type"] == 4: 
+                agentTypeDirectory = "DQN"
+                agentFolder = os.path.join(directory, agentTypeDirectory, experimentFolder)
+
                 model = loadModel(directory, experiment, parameters['inputSize'], parameters['outputSize'])
-                replayBuffer = loadReplayBuffer(folderDirectory, experiment)
+                replayBuffer = loadReplayBuffer(agentFolder, experiment)
                 if model is not None or replayBuffer is not None:
-                    totalMetadata = loadMetadata(folderDirectory, experiment = experiment)
-                    phaseMetadata = loadMetadata(folderDirectory, phase = phase)
+                    totalMetadata = loadMetadata(agentFolder, experiment = experiment)
+                    phaseMetadata = loadMetadata(agentFolder, phase = phase)
 
                     metadataList.append((totalMetadata, phaseMetadata))
                 
@@ -99,26 +104,10 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
     
     for i, (agent, metadata) in enumerate(zip(playerList, metadataList)):
 
-        if metadata is None or metadata[0] is None:
-            agentsStats[i]['total'] = {
-            'trainingCount' : 0,
-            'survivalCount': 0,
-            'gameLength': 0,
-            'durakCount' : 0,
-            'totalReward': 0,
-            'averageReward': [],
-            'averageRewardInterval': [],
-            'survivalRates': [],
-            'survivalRatesInterval' : [],
-            'averageGameLength' : [],
-            'averageGameLengthInterval' : []
-            }
-
-        else:
-            agentsStats[i]['total'] = metadata[0]
-
-        if metadata is None or (len(metadata) > 1 and metadata[1] is None):
-            agentsStats[i]['phase'] = {
+        if isinstance(agent, Agent):
+            
+            if metadata is None or metadata[0] is None:
+                agentsStats[i]['total'] = {
                 'trainingCount' : 0,
                 'survivalCount': 0,
                 'gameLength': 0,
@@ -130,18 +119,39 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
                 'survivalRatesInterval' : [],
                 'averageGameLength' : [],
                 'averageGameLengthInterval' : []
-            }
+                }
 
+            else:
+                agentsStats[i]['total'] = metadata[0]
+
+            if metadata is None or (len(metadata) > 1 and metadata[1] is None):
+                agentsStats[i]['phase'] = {
+                    'trainingCount' : 0,
+                    'survivalCount': 0,
+                    'gameLength': 0,
+                    'durakCount' : 0,
+                    'totalReward': 0,
+                    'averageReward': [],
+                    'averageRewardInterval': [],
+                    'survivalRates': [],
+                    'survivalRatesInterval' : [],
+                    'averageGameLength' : [],
+                    'averageGameLengthInterval' : []
+                }
+
+            else:
+                agentsStats[i]['phase'] = metadata[1] 
+        
         else:
-            agentsStats[i]['phase'] = metadata[1] 
-    
+            agentsStats[i] = None
+
     for i in range(trainingIterations):
         print(f"\nGame {i+1}")
 
-        playerList = sorted(playerList, key=lambda player: player.playerID)
-
         game = Game(playerList, gameProperties)
         game.newGame()
+
+        playerList = sorted(playerList, key=lambda player: player.playerID)
 
         for j, agent in enumerate(playerList):
             if isinstance(agent, Agent):
@@ -184,6 +194,9 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
         if (i + 1) % analysisIntervals == 0 and i > 0:
             
             for agentStats in agentsStats:
+                if agentStats is None:
+                    continue
+
                 ##Survival Rates
                 survivalRateTotal = (agentStats['total']['survivalCount'] / agentStats['total']['trainingCount']) * 100
                 agentStats['total']['survivalRates'].append(survivalRateTotal)
@@ -452,7 +465,7 @@ def plotAverageGameLength(gameStats, interval, experiment, directory, phase = No
         plt.title(f'Average Game Length Over Phase {phase} - Experiment {experiment}')
         filename = f"Average_game_length_experiment_{experiment}_phase_{phase}.png"
     
-    plt.ylim(10, 20)
+    plt.ylim(0, 50)
     plt.grid(True)
     plt.legend() 
 
@@ -543,7 +556,7 @@ def saveExperimentFolder(agent, experiment, phase, agentStats, gameProperties):
         agentTypeDirectory = "DQN"
 
     ##Store the folder in the correct location (Depending on Q/DQN)
-    agentFolder = os.path.join(directory, agentTypeDirectory, f"experiment_{experiment}", f"agent_{agent.playerID}")
+    agentFolder = os.path.join(directory, agentTypeDirectory, f"experiment_{experiment}")
     os.makedirs(agentFolder, exist_ok=True)
 
     writeFile(agentFolder, f"experiment_{experiment}_agent_{agent.playerID}.txt", agentStats['total'], agent.lrParameters, gameProperties, agent)
@@ -577,16 +590,21 @@ def agentTraining(playerTypes, gameProperties, intervals, trainingIterations):
     playerList, metadataList = createPlayers(playerTypes, True)
     playerList, agentsStats = runExperiment(playerList, metadataList, gameProperties, intervals, trainingIterations)
 
-    for player, stats in zip(playerList, agentsStats):
+    for i, (player, stats) in enumerate(zip(playerList, agentsStats)):
         if isinstance(player, Agent):
-            config = next(item for item in playerTypes if isinstance(item, dict) and item.get('type') == 3 or item.get('type') == 4)
-            experiment = config['experiment']
-            phase = config['phase']
+            config = playerTypes[i]
             
+            if isinstance(config, dict):
+                experiment = config['experiment']
+                phase = config['phase']
+
+            else:
+                print("Error. Not finding correct config file")
+        
             saveExperimentFolder(player, experiment, phase, stats, gameProperties)
 
 intervals = 500
-trainingIterations = 10000
+trainingIterations = 50000
 
 ##RL Agent parameters
 lrParams = {
@@ -595,7 +613,7 @@ lrParams = {
     "epsilon": 0.1,
     "gamma" : 0,
     "batchSize" : 128,
-    "inputSize" : 1374,
+    "inputSize" : 1062,
     "outputSize" : 174,
     "learningIntervals" : 1000,
     "bufferCapacity" : 200000,
@@ -604,7 +622,7 @@ lrParams = {
 
 gameProperties = {
     "handCount" : 6,
-    "talonCount" : 36,
+    "talonCount" : 24,
     "printGameplay" : False
 }
 
@@ -619,7 +637,7 @@ directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
     ## DQN Agent        - 4
 playerTypes = [
     2, 
-    {"type" : 3, "experiment" : "1S", "phase" : "LV_Bot", 'parameters': lrParams}
+    {"type" : 4, "experiment" : "1", "phase" : "Rand_Bot", 'parameters': lrParams}
 ]
 
 ##{"type" : 4, "experiment" : "1", "phase" : "A", 'parameters': lrParams},

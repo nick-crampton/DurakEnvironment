@@ -20,12 +20,15 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(inputSize, 1024)
         self.fc2 = nn.Linear(1024, 768)
         self.fc3 = nn.Linear(768, 512) 
-        self.out = nn.Linear(512, outputSize)
+        self.fc4 = nn.Linear(512, 256)
+        self.out = nn.Linear(256, outputSize)
+
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
         x = self.out(x)
         return x
     
@@ -33,7 +36,7 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     if len(replayBuffer) < batchSize:
         return
     
-    batch = random.sample(replayBuffer, batchSize)
+    batch = replayBuffer.sample(batchSize)
     
     states, actions, nextStates, rewards, gameCompletion = map(torch.stack, zip(*batch))
 
