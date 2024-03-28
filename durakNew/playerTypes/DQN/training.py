@@ -38,16 +38,21 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     
     batch = replayBuffer.sample(batchSize)
     
-    states, actions, nextStates, rewards, gameCompletion = map(torch.stack, zip(*batch))
+    states, actions, nextStates, rewards, gameCompletions = zip(*batch)
+    
+    states = torch.tensor(states, dtype=torch.float32)
+    actions = torch.tensor(actions, dtype=torch.long)
+    nextStates = torch.stack(nextStates).to(model.device).float()
+    rewards = torch.tensor(rewards, dtype=torch.float32)
+    gameCompletions = torch.tensor(gameCompletions, dtype=torch.bool)
 
-    actions = actions.long().unsqueeze(-1)
-    rewards = rewards.float()
-    gameCompletion = gameCompletion.bool()
+    actions = actions.unsqueeze(-1)
+    print(model(states).shape, actions.shape)
 
     currentQ = model(states).gather(1, actions).squeeze(-1)
     
     nextQ = model(nextStates).detach().max(1)[0]
-    nextQ[gameCompletion] = 0
+    nextQ[gameCompletions] = 0
 
     targetQ = rewards + (gamma * nextQ)
 

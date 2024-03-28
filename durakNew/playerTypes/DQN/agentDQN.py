@@ -135,7 +135,9 @@ class AgentDQN(Agent):
         self.lastReward = reward
         self.totalReward += reward
 
-        self.replayBuffer.storeExperience(self.lastState, self.lastAction, None, reward, True)
+        terminalState = torch.zeros_like(self.lastState)
+
+        self.replayBuffer.storeExperience(self.lastState, self.lastAction, terminalState, reward, True)
 
         self.lastState = None
         self.lastAction = None
@@ -252,6 +254,7 @@ class AgentDQN(Agent):
 
         if np.random.rand() < self.epsilon:
             action = random.choice(possibleMovesFlat)
+            actionEncoded = self.encodeAction(action, role)
 
         else:
             qValues = qValues.cpu().numpy().squeeze()
@@ -261,12 +264,13 @@ class AgentDQN(Agent):
             bestActionIndex = np.argmax(validQ)
 
             action = possibleMovesFlat[bestActionIndex]
+            actionEncoded = self.encodeAction(action, role)
 
         if (self.lastState is not None) and (self.lastAction is not None):
             self.replayBuffer.storeExperience(self.lastState, self.lastAction, currentState, self.lastReward)
 
         self.lastState = currentState
-        self.lastAction = action
+        self.lastAction = actionEncoded
 
         return action
     
