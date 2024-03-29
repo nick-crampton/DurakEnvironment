@@ -8,11 +8,12 @@ import durakNew.playerTypes.DQN.training as Training
 import numpy as np
 import random
 import torch
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class AgentDQN(Agent):
     def __init__(self, hand, playerID, gamestate, lrParameters, model, replayBuffer = None):
         super().__init__(hand, playerID, gamestate, lrParameters)
-        self.model = model.to(Training.device)
+        self.model = model.to(device)
         self.model.eval()
 
         self.gamma = lrParameters['gamma']
@@ -135,7 +136,8 @@ class AgentDQN(Agent):
         self.lastReward = reward
         self.totalReward += reward
 
-        terminalState = torch.zeros_like(self.lastState)
+        stateLength = len(self.lastState)
+        terminalState = [0] * stateLength
 
         self.replayBuffer.storeExperience(self.lastState, self.lastAction, terminalState, reward, True)
 

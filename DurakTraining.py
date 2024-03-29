@@ -14,6 +14,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+print(torch.cuda.is_available())  
+print(torch.version.cuda)         
+print(torch.cuda.current_device())
+print(torch.cuda.device_count())
+print(torch.cuda.get_device_name(0)) 
+
 def createPlayers(playerTypes, training):
     global directory
     
@@ -603,7 +609,7 @@ def agentTraining(playerTypes, gameProperties, intervals, trainingIterations):
         
             saveExperimentFolder(player, experiment, phase, stats, gameProperties)
 
-intervals = 500
+intervals = 1000
 trainingIterations = 50000
 
 ##RL Agent parameters
@@ -616,7 +622,7 @@ lrParams = {
     "inputSize" : 1062,
     "outputSize" : 174,
     "learningIntervals" : 1000,
-    "bufferCapacity" : 200000,
+    "bufferCapacity" : 1000000,
     "trainingIterations" : 200
 }
 
@@ -636,7 +642,7 @@ directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
     ## Q Agent          - 3
     ## DQN Agent        - 4
 playerTypes = [
-    2, 
+    1, 
     {"type" : 4, "experiment" : "1", "phase" : "Rand_Bot", 'parameters': lrParams}
 ]
 

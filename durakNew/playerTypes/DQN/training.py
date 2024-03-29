@@ -6,9 +6,6 @@ import random
 from durakNew.playerTypes.DQN import agentDQN
 from durakNew.playerTypes.DQN import replayBuffer
 
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 def convertToTensor(state):
 
     stateTensor = torch.tensor(state, dtype = torch.float)
@@ -32,7 +29,7 @@ class DQN(nn.Module):
         x = self.out(x)
         return x
     
-def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
+def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma, device):
     if len(replayBuffer) < batchSize:
         return
     
@@ -40,14 +37,11 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma):
     
     states, actions, nextStates, rewards, gameCompletions = zip(*batch)
     
-    states = torch.tensor(states, dtype=torch.float32)
-    actions = torch.tensor(actions, dtype=torch.long)
-    nextStates = torch.stack(nextStates).to(model.device).float()
-    rewards = torch.tensor(rewards, dtype=torch.float32)
-    gameCompletions = torch.tensor(gameCompletions, dtype=torch.bool)
-
-    actions = actions.unsqueeze(-1)
-    print(model(states).shape, actions.shape)
+    states = torch.tensor(states, dtype=torch.float32).to(device)
+    actions = torch.tensor(actions, dtype=torch.long).unsqueeze(-1).to(device)
+    nextStates = torch.tensor(nextStates, dtype=torch.float32).to(device)
+    rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
+    gameCompletions = torch.tensor(gameCompletions, dtype=torch.bool).to(device)
 
     currentQ = model(states).gather(1, actions).squeeze(-1)
     
@@ -72,7 +66,7 @@ def startTraining(model, replayBuffer, batchSize, inputSize, outputSize, gamma, 
     modelLosses = []
 
     for i in range(trainingIterations):
-        loss = trainNetwork(model, replayBuffer, batchSize, optimizer, gamma)
+        loss = trainNetwork(model, replayBuffer, batchSize, optimizer, gamma, device)
         modelLosses.append(loss)    
 
     return model, modelLosses
