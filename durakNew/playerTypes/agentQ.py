@@ -154,7 +154,7 @@ class AgentQ(Agent):
             self.updateQ(currentState, possibleMovesFlat)
 
         ##Choose action randomly
-        if np.random.rand() < self.epsilon:
+        if np.random.rand() < self.epsilonValue:
             originalAction = random.choice(possibleMovesFlat)
             qAction = self.encodeAction(originalAction)
 

@@ -252,9 +252,10 @@ class AgentDQN(Agent):
             possibleMovesFlat = possibleMoves
 
         with torch.no_grad():
+            stateTensor = stateTensor.to(device)
             qValues = self.model(stateTensor)
 
-        if np.random.rand() < self.epsilon:
+        if np.random.rand() < self.epsilonValue:
             action = random.choice(possibleMovesFlat)
             actionEncoded = self.encodeAction(action, role)
 

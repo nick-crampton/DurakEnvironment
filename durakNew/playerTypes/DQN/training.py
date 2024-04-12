@@ -11,9 +11,9 @@ def convertToTensor(state):
     stateTensor = torch.tensor(state, dtype = torch.float)
     return stateTensor
 
-class DQN(nn.Module):
+class DQN_Regular(nn.Module):
     def __init__(self, inputSize, outputSize):
-        super(DQN, self).__init__()
+        super(DQN_Regular, self).__init__()
         self.fc1 = nn.Linear(inputSize, 1024)
         self.fc2 = nn.Linear(1024, 768)
         self.fc3 = nn.Linear(768, 512) 
@@ -28,6 +28,18 @@ class DQN(nn.Module):
         x = F.relu(self.fc4(x))
         x = self.out(x)
         return x
+    
+class DQN_Small(nn.Module):
+    def __init__(self, inputSize, outputSize):
+        super(DQN_Small, self).__init__()
+        self.fc1 = nn.Linear(inputSize, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.out = nn.Linear(256, outputSize)
+    
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.out(x))
     
 def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma, device):
     if len(replayBuffer) < batchSize:
@@ -60,9 +72,14 @@ def trainNetwork(model, replayBuffer, batchSize, optimizer, gamma, device):
 
 def startTraining(model, replayBuffer, batchSize, inputSize, outputSize, gamma, trainingIterations):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = DQN(inputSize= inputSize, outputSize=outputSize).to(device)
+    
+    if inputSize == 516:
+        model = DQN_Small(inputSize = inputSize, outputSize= outputSize).to(device)
+    
+    else:
+        model = DQN_Regular(inputSize= inputSize, outputSize=outputSize).to(device)
+    
     optimizer = optim.Adam(model.parameters(), lr=0.01)
-
     modelLosses = []
 
     for i in range(trainingIterations):

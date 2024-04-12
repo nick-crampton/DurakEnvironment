@@ -3,7 +3,8 @@ from durakNew.playerTypes.agent import Agent
 from durakNew.playerTypes.agentQ import AgentQ
 from durakNew.playerTypes.DQN.agentDQN import AgentDQN
 from durakNew.playerTypes.DQN.replayBuffer import ReplayBuffer
-from durakNew.playerTypes.DQN.training import DQN
+from durakNew.playerTypes.DQN.training import DQN_Regular
+from durakNew.playerTypes.DQN.training import DQN_Small
 from durakNew.playerTypes.randomBot import RandomBot
 from durakNew.playerTypes.humanPlayer import HumanPlayer
 from durakNew.playerTypes.lowestValueBot import LowestValueBot
@@ -13,12 +14,6 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
-print(torch.cuda.is_available())  
-print(torch.version.cuda)         
-print(torch.cuda.current_device())
-print(torch.cuda.device_count())
-print(torch.cuda.get_device_name(0)) 
 
 def createPlayers(playerTypes, training):
     global directory
@@ -188,6 +183,9 @@ def runExperiment(playerList, metadataList, gameProperties, analysisIntervals, t
                 
                 print(f"\nReward accumulated in game is {agent.totalReward}")
                 agent.totalReward = 0
+
+                if agent.decayType is not None:
+                    agent.updateEpsilon(trainingIterations)
 
         for agent in playerList:
             if isinstance(agent, AgentDQN):
@@ -389,7 +387,6 @@ def plotSurvivalRate(gameStats, interval, experiment, directory, phase = None):
         plt.title(f'Survival Rate Over Phase {phase} - Experiment {experiment}')
         filename = f"Survival_experiment_{experiment}_phase_{phase}.png"
     
-    plt.ylim(0, 100)
     plt.axhline(y=50, color='g', linestyle='--')  
     plt.grid(True)
     plt.legend()
@@ -431,7 +428,6 @@ def plotAverageRewards(gameStats, interval, experiment, directory, phase = None)
         filename = f"Average_reward_experiment_{experiment}_phase_{phase}.png"
     
     plt.axhline(y = 0, color = 'g')
-    plt.ylim(-0.5, 2)
     plt.grid(True)
     plt.legend()
 
@@ -471,7 +467,6 @@ def plotAverageGameLength(gameStats, interval, experiment, directory, phase = No
         plt.title(f'Average Game Length Over Phase {phase} - Experiment {experiment}')
         filename = f"Average_game_length_experiment_{experiment}_phase_{phase}.png"
     
-    plt.ylim(0, 50)
     plt.grid(True)
     plt.legend() 
 
@@ -619,12 +614,35 @@ lrParams = {
     "epsilon": 0.1,
     "gamma" : 0,
     "batchSize" : 128,
-    "inputSize" : 1062,
+    "inputSize" : 516,
     "outputSize" : 174,
     "learningIntervals" : 1000,
     "bufferCapacity" : 1000000,
     "trainingIterations" : 200
 }
+
+lrParams1 = {
+    "learningRate": 0.1,
+    "discount": 0.99,
+    "epsilon": {
+        "value" : 1.0,
+        "min" : 0.10,
+        "decayType" : "exp",
+        "decayPortion" : 0.4
+    },
+    "gamma" : 0,
+    "batchSize" : 128,
+    "inputSize" : 516,
+    "outputSize" : 174,
+    "learningIntervals" : 1000,
+    "bufferCapacity" : 1000000,
+    "trainingIterations" : 200
+}
+
+
+## Input Sizes:
+##Standard Game = 1062
+##Smaller Game = 516
 
 gameProperties = {
     "handCount" : 6,
@@ -642,8 +660,8 @@ directory = os.path.abspath(os.path.join(os.getcwd(), 'experiments'))
     ## Q Agent          - 3
     ## DQN Agent        - 4
 playerTypes = [
-    1, 
-    {"type" : 4, "experiment" : "1", "phase" : "Rand_Bot", 'parameters': lrParams}
+    2, 
+    {"type" : 3, "experiment" : "5", "phase" : "randBot", 'parameters': lrParams1}
 ]
 
 ##{"type" : 4, "experiment" : "1", "phase" : "A", 'parameters': lrParams},
@@ -656,4 +674,4 @@ playerTypes = [
 
 agentTraining(playerTypes, gameProperties, intervals, trainingIterations)
 
-##playGame([2, 2], gameProperties)
+##playGame([], gameProperties)

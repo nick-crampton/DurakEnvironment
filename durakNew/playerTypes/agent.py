@@ -9,7 +9,11 @@ class Agent(Player):
 
         self.learningRate = lrParameters['learningRate']
         self.discount = lrParameters['discount']
+        
         self.epsilon = lrParameters['epsilon']
+        self.epsilonValue = self.epsilon['value']
+        self.decayType = self.epsilon['min']
+        self.decayPortion = self.epsilon['decay']
 
         self.lastAction = None
         self.lastState = None
@@ -33,3 +37,11 @@ class Agent(Player):
         else:
             self.lastReward = 0
 
+    def updateEpsilon(self, iterations):
+        if self.decayType == "lin":
+            linearDecay = 1.0 - 0.9 * (self.epsilonValue / (self.decayPortion * iterations))
+            self.epsilonValue = linearDecay
+
+        elif self.decayType == "exp":
+            exponentialDecay = 1.0 * 0.1 ** (self.epsilonValue / (self.decayPortion * iterations))
+            self.epsilonValue = exponentialDecay
