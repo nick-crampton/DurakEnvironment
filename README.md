@@ -38,5 +38,5 @@ The Q-Learning agent consistently outperforms both RandomBot and LowestValueBot,
 
 ## Paper
 
-You can read the full paper [here](./llhl72project.pdf).
+You can read the full paper [here](./llhl72Project.pdf).
 
