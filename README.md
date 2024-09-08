@@ -35,3 +35,8 @@ Bots included:
 ## Results
 
 The Q-Learning agent consistently outperforms both RandomBot and LowestValueBot, showing high survival rates and advanced strategic planning. The DQN agent, while effective in some cases, struggles with convergence due to the complexity of the state space.
+
+## Paper
+
+You can read the full paper [here](./llhl72project.pdf).
+
